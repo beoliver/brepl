@@ -1,4 +1,4 @@
-module github.com.beoliver/prepl-ws-server
+module github.com.beoliver/brepl-server
 
 go 1.17
 

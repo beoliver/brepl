@@ -9,11 +9,17 @@ window.addEventListener("load", function (evt) {
     output.appendChild(d);
     output.scroll(0, output.scrollHeight);
   };
-  document.getElementById("open").onclick = function (evt) {
+  document.getElementById("connect").onclick = function (evt) {
     if (ws) {
       return false;
     }
-    ws = new WebSocket(`ws://${window.location.host}/prepl/${preplPort}`);
+    // don't try to create a websocket if we know there is no port
+    if (port.value === "") {
+      return false;
+    }
+
+    ws = new WebSocket(`ws://${window.location.host}/prepl/${port.value}`);
+
     ws.onopen = function (evt) {
       print("OPEN");
     };
@@ -22,7 +28,11 @@ window.addEventListener("load", function (evt) {
       ws = null;
     };
     ws.onmessage = function (evt) {
-      print("RESPONSE: " + evt.data);
+      console.log(evt.data);
+      console.log(typeof evt.data);
+      const json = JSON.parse(evt.data);
+      console.log(typeof json);
+      print("RESPONSE: " + JSON.stringify(json["val"], null, 2));
     };
     ws.onerror = function (evt) {
       print("ERROR: " + evt.data);

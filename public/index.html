@@ -2,9 +2,17 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <script src="js/main.js"></script>
     <script src="js/prepl.js"></script>
   </head>
   <body>
+    <div style="background-color: beige;" >
+      <form>
+          <input id="port" type="text" placeholder="port" />
+          <button id="connect">Connect to prepl</button>
+      </form>
+    </div>
+
     <table>
       <tr>
         <td valign="top" width="50%">
@@ -16,7 +24,6 @@
 
           <p></p>
           <form>
-            <button id="open">Open</button>
             <button id="close">Close</button>
             <p>
               <input id="input" type="text" value="Hello world!" />
