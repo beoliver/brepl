@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"flag"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"log"
@@ -11,6 +12,8 @@ import (
 	"net/http"
 	"olympos.io/encoding/edn"
 )
+
+
 
 var upgrader = websocket.Upgrader{} // use default options
 
@@ -102,12 +105,15 @@ func ConnectToRepl(port string) (Prepl, error) {
 }
 
 func main() {
+	port := flag.String("port", "8080", "web server port")
+	flag.Parse()
 	// handle func to open a repl websocket
 	// ws://localhost:7777/prepl?port=8888
 	// I want it to be ws://localhost:7777/prepl/{PORT}
 	// as the prepl port is required - but does NOT need to be known by the server
+	addr := fmt.Sprintf(":%s", *port)
 	myRouter := mux.NewRouter()
 	myRouter.HandleFunc("/prepl/{port}", prepl)
 	myRouter.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("public"))))
-	log.Fatal(http.ListenAndServe(":7777", myRouter))
+	log.Fatal(http.ListenAndServe(addr, myRouter))
 }

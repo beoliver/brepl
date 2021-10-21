@@ -6,9 +6,9 @@ a browser based repl for clojure
     ```bash
     $ ./prepl.sh 8888
     ```
-3. Start the server. This is for the frontend. The server doesn't need to know about the `prepl` server port.
+3. Start the server on your favourite port. This is for the frontend. The server doesn't need to know about the `prepl` server port.
     ```bash
     $ cd server
-    $ go run main.go
+    $ go run main.go --port 7777
     ```
 4. got to [http://localhost:7777](http://localhost:7777)
