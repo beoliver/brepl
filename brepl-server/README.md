@@ -19,5 +19,5 @@ make build
 ```
 
 ```shell
-.bin/brepl-server -port 8080 -serve-from $PWD/../public
+./bin/brepl-server -port 8080 -serve-from $PWD/../public
 ```
