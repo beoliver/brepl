@@ -2,6 +2,9 @@ binary=bin/brepl-server
 
 default: vet test build
 
+clean:
+	rm -rf bin
+
 vet:
 	go vet ./...
 
