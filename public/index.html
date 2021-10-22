@@ -5,29 +5,28 @@
     <script src="js/main.js"></script>
     <script src="js/prepl.js"></script>
   </head>
-  <body>
+  <body style="font-family: Arial, Helvetica, sans-serif;">
     <div style="background-color: beige;" >
       <form>
-          <input id="port" type="text" placeholder="port" />
-          <button id="connect">Connect to prepl</button>
+          <input id="port" type="text" placeholder="port" required/>
+          <button id="connect">Connect to PREPL</button>
+          <button id="close">Close</button>
       </form>
     </div>
 
     <table>
       <tr>
         <td valign="top" width="50%">
-          <p>
-            Click "Open" to create a connection to the server, "Send" to send a
-            message to the server and "Close" to close the connection. You can
-            change the message and send multiple times.
-          </p>
-
-          <p></p>
+          <h3>
+            Click "Connect to PREPL" to create a connection to a running instance
+            of a PREPL socket server...
+          </h3>
           <form>
-            <button id="close">Close</button>
             <p>
-              <input id="input" type="text" value="Hello world!" />
-              <button id="send">Send</button>
+              <form>
+                <textarea id="input" type="text" value="Hello world!"></textarea>
+                <button id="send">Send</button>
+              </form>
             </p>
           </form>
         </td>

@@ -89,14 +89,22 @@ func connectToRepl (ws *websocket.Conn, port string) {
 	writeToRepl(repl, ws)
 }
 
+type ReplService struct {
+	upgrader websocket.Upgrader
+}
 
-var upgrader = websocket.Upgrader{} // use default options
+func initializeUpgrader(anyOrigin bool) *ReplService {
+	var upgrader = websocket.Upgrader{} // use default options as base
+	if anyOrigin {
+		upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+	}
+	return &ReplService{upgrader}
+}
 
-
-func HandlePreplWebsocket(w http.ResponseWriter, r *http.Request) {
+func (s *ReplService) HandlePreplWebsocket(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	port := vars["port"]
-	ws, err := upgrader.Upgrade(w, r, nil)
+	ws, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
 		return
@@ -108,15 +116,20 @@ func HandlePreplWebsocket(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	port := flag.String("port", "8080", "web server port")
+	wsAnyOrigin := flag.Bool("ws-any-origin", false, "allow connections from different hosts/ports")
 	serveFrom := flag.String("serve-from", "public", "directory to serve static files from")
+
 	flag.Parse()
 	addr := fmt.Sprintf("localhost:%s", *port)
 
+	replService := initializeUpgrader(*wsAnyOrigin)
+
 	fmt.Printf("Serving static files from '%s' on '%s'\n", *serveFrom, addr)
+	fmt.Printf("Allow websocket connections when 'origin' is not '%s': %t\n", addr, *wsAnyOrigin)
 	fmt.Printf("%s/prepl/{port} to establish websocket connection to a prepl instance\n", addr)
 
 	myRouter := mux.NewRouter()
-	myRouter.HandleFunc("/prepl/{port}", HandlePreplWebsocket)
+	myRouter.HandleFunc("/prepl/{port}", replService.HandlePreplWebsocket)
 	myRouter.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(*serveFrom))))
 	log.Fatal(http.ListenAndServe(addr, myRouter))
 }

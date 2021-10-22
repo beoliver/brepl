@@ -12,7 +12,7 @@ test:
 	go test -v ./...
 
 dev: vet
-	go run main.go -port 8080 -serve-from ../public
+	go run main.go -port 8080 -ws-any-origin -serve-from ../public
 
 build: main.go
 	mkdir -p bin
