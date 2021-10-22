@@ -6,9 +6,6 @@ instance of a clojure prepl socket server.
 
 Reading/writing to/from the socket server is async.
 
-The response maps (EDN) from the socket server are converted to JSON before being
-send back over the websocket.
-
 Optionally allows for files to be hosted. This means that a single server can both host
 arbitrary front-ends and support websocket repl connections.
 

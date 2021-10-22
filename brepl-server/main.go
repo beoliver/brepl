@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -39,35 +38,15 @@ func openReplConn(port string) (ReplConn, error) {
 	return ReplConn{conn: conn, addr: address}, nil
 }
 
-func (s *ReplService) readFromRepl(ws *websocket.Conn, repl ReplConn) {
+func readFromRepl(ws *websocket.Conn, repl ReplConn) {
 	scanner := bufio.NewScanner(repl.conn)
 	for scanner.Scan() {
-		log.Printf("Scanner Scanned")
 		bytes := scanner.Bytes()
-
-		if s.ednToJson {
-			var result PreplResult
-			err := edn.Unmarshal(bytes, &result)
-			if err != nil {
-				log.Printf("Error unmarshalling data: %+v", bytes)
-				return
-			}
-			b, err := json.Marshal(result)
-			if err != nil {
-				log.Printf("Error marshalling data: %+v", err)
-				return
-			}
-			err = ws.WriteMessage(websocket.TextMessage, b)
-			if err != nil {
-				return
-			}
-		} else {
-			err := ws.WriteMessage(websocket.TextMessage, bytes)
-			if err != nil {
-				return
-			}
+		log.Printf("Scanner read: %+v", bytes)
+		err := ws.WriteMessage(websocket.TextMessage, bytes)
+		if err != nil {
+			return
 		}
-
 	}
 }
 
@@ -78,9 +57,8 @@ func writeToRepl(repl ReplConn, ws *websocket.Conn) {
 			log.Println("read:", err)
 			break
 		}
-		log.Printf("recv: %s with message type: %d", message, mt)
-		message = append(message, '\n')
-		sentBytes, err := fmt.Fprintf(repl.conn, string(message))
+		log.Printf("recv: %s with bytes %+v and with message type: %d", message, message, mt)
+		sentBytes, err := fmt.Fprintf(repl.conn, "%s\n",string(message))
 		log.Printf("wrote %d bytes to prepl", sentBytes)
 		if err != nil {
 			log.Println("prepl write:", err)
@@ -89,27 +67,26 @@ func writeToRepl(repl ReplConn, ws *websocket.Conn) {
 	}
 }
 
-func (s *ReplService) connectToRepl(ws *websocket.Conn, port string) {
+func connectToRepl(ws *websocket.Conn, port string) {
 	repl, err := openReplConn(port)
 	if err != nil {
 		return
 	}
 	defer repl.conn.Close()
-	go s.readFromRepl(ws, repl)
+	go readFromRepl(ws, repl)
 	writeToRepl(repl, ws)
 }
 
 type ReplService struct {
 	upgrader  websocket.Upgrader
-	ednToJson bool
 }
 
-func initializeUpgrader(anyOrigin bool, ednToJson bool) *ReplService {
+func initializeUpgrader(anyOrigin bool) *ReplService {
 	var upgrader = websocket.Upgrader{} // use default options as base
 	if anyOrigin {
 		upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	}
-	return &ReplService{upgrader, ednToJson}
+	return &ReplService{upgrader}
 }
 
 func (s *ReplService) HandlePreplWebsocket(w http.ResponseWriter, r *http.Request) {
@@ -121,22 +98,20 @@ func (s *ReplService) HandlePreplWebsocket(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	defer ws.Close()
-	s.connectToRepl(ws, port)
+	connectToRepl(ws, port)
 }
 
 func main() {
 	port := flag.String("port", "8080", "web server port")
 	wsAnyOrigin := flag.Bool("ws-any-origin", false, "allow connections from different hosts/ports")
-	ednToJson := flag.Bool("edn-to-json", false, "convert repl responses to JSON (top level only)")
 	serveFrom := flag.String("serve-from", "public", "directory to serve static files from")
 
 	flag.Parse()
 	addr := fmt.Sprintf("localhost:%s", *port)
 
-	replService := initializeUpgrader(*wsAnyOrigin, *ednToJson)
+	replService := initializeUpgrader(*wsAnyOrigin)
 
 	fmt.Printf("Serving static files from '%s' on '%s'\n", *serveFrom, addr)
-	fmt.Printf("Convert EDN to JSON: '%t'\n", *ednToJson)
 	fmt.Printf("Allow websocket connections when 'origin' is not '%s': %t\n", addr, *wsAnyOrigin)
 	fmt.Printf("%s/prepl/{port} to establish websocket connection to a prepl instance\n", addr)
 
