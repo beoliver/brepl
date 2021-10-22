@@ -1,1 +1,18 @@
-{:deps {org.clojure/clojurescript {:mvn/version "1.10.758"}}}
+{:deps {
+        org.clojure/clojure {:mvn/version "1.10.3"}
+        org.clojure/clojurescript {:mvn/version "1.10.758"}
+        ;; reagent is a clojurescript wrapper for react
+        reagent/reagent {:mvn/version "1.1.0"}
+        ;; reagent requires react
+        cljsjs/react {:mvn/version "17.0.2-0"}
+        cljsjs/react-dom {:mvn/version "17.0.2-0"}
+        ;; figwheel
+        com.bhauman/figwheel-main {:mvn/version "0.2.14"}
+        com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
+        }
+ :paths ["src", "target", "resources"]
+ :aliases {:fig
+           {:extra-deps
+            {com.bhauman/figwheel-main {:mvn/version "0.2.14"}
+             com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}}}
+ }
