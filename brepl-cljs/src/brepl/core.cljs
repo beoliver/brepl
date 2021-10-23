@@ -21,13 +21,18 @@
                         :repl-messages nil}))
 
 (defprotocol REPL
-  (write [repl expr])
+  (read [repl expr])
   (close [repl]))
 
-(defrecord Repl [conn]
-  REPL
-  (close [_] (.close conn))
-  (write [_ expr] (.send conn expr)))
+(extend-type js/WebSocket REPL
+             (read [ws expr] (.send ws expr))
+             (close [ws] (.close ws)))
+
+
+#_(defrecord Repl [conn]
+    REPL
+    (close [_] (.close conn))
+    (read [_ expr] (.send conn expr)))
 
 
 (defn connect-to-repl!
@@ -54,43 +59,64 @@
      (.addEventListener sock "error"
                         (fn [event]
                           (swap! state assoc :ws-error event)))
-     (reset! repl (->Repl sock)))))
+     sock)))
 
-
-
-;; (comment
-;;   (connect-to-repl! "8080" "8888")
-;;   )
 
 (defn port-input [partial-port]
   [:input {:type "text"
+           :placeholder "PORT"
+           :maxLength "5" ; 65535
+           :size "4"
            :value @partial-port
            :on-change #(reset! partial-port (-> % .-target .-value))}])
+
 
 (defn connecty-thing []
   (let [port (r/atom "")]
     (fn []
-      [:div
-       [:p "connected: " (str (:repl-connected? @state))]
-       [:span "connect to prepl on port: " [port-input port]]
-       [:input {:type "button"
-                :value "Connect to PREPL"
-                :on-click (fn [_] (connect-to-repl! "8080" @port))}]])))
+      [:div {:style {
+                     :height "3em"
+                     :font-family "monospace"
+                     :background-color "white"
+                     :display "flex"
+                     :align-items "center"}}
+       [:span {:style {:height "1em"
+                       :margin-left "1em"
+                       :margin-right "1em"
+                       :width "1em"
+                       :background-color (if (@state :repl-connected?) "#32CD32" "grey")
+                       :border-radius "50%"
+                       :display "inline-block"} }]
+       (if-not (@state :repl-connected?)
+         [:<>
+          [:span "Connect to prepl on localhost:"]
+          [port-input port]
+          [:input {:style {:margin-left "1em"}
+                   :type "button"
+                   :value "Connect"
+                   :on-click (fn [_] (->> (connect-to-repl! "8080" @port)
+                                          (reset! repl)))}]]
+         [:<>
+          [:span "Connected to prepl on localhost:" @port]
+          [:input {:style {:margin-left "1em"}
+                   :type "button"
+                   :value "Disconnect"
+                   :on-click (fn [_] (close @repl))}]])])))
 
 (defn expr-input [partial-expr]
-  [:input {:type "text"
-           :value @partial-expr
-           :on-change #(reset! partial-expr (-> % .-target .-value))}])
+  [:textarea {:style {:width "50%"}
+              :value @partial-expr
+              :on-change #(reset! partial-expr (-> % .-target .-value))}])
 
 
 (defn sendy-thing []
   (let [expr (r/atom "")]
     (fn []
       [:div
-       [:span "expr: " [expr-input expr]]
+       [expr-input expr]
        [:input {:type "button"
                 :value "Eval"
-                :on-click (fn [_] (write @repl @expr))}]])))
+                :on-click (fn [_] (read @repl @expr))}]])))
 
 
 (def colors (r/atom {:red "#fe6f5e"
@@ -124,30 +150,36 @@
      (if (:exception msg)
        [:details
         [:summary {:style {:font-family "sans-serif"}} [:b "Exception"]]
-        [:pre {:style {:padding "0 0" :margin "0 0"}} result]]
-       [:pre {:style {:padding "0 0" :margin "0 0"}}
+        [:pre {:style {:overflow-x "auto"
+                       :padding "0 0"
+                       :margin "0 0"}} result]]
+       [:pre {:style {:overflow-x "auto"
+                      :padding "0 0"
+                      :margin "0 0"}}
         (maybe-format-val (:val msg))])]))
 
 
 (defn output-thingy []
   [:div {:style {:font-size "1em"}}
-   (map-indexed
-    (fn [i msg]
-      ^{:key i} [:div
-                 {:style {:padding "1em 1em" :margin "0 0"
-                          :background-color (:background (msg->colour msg))
-                          :color (:foreground (msg->colour msg))
-                          :border-bottom "1px solid black"}}
-                 [response-div msg]
-                 ])
-    (:repl-messages @state))])
+   (doall (map-indexed
+           (fn [i msg]
+             ^{:key i} [:div
+                        {:style {:padding "1em 1em" :margin "0 0"
+                                 :background-color (:background (msg->colour msg))
+                                 :color (:foreground (msg->colour msg))
+                                 :border-bottom "1px solid black"}}
+                        [response-div msg]
+                        ])
+           (:repl-messages @state)))])
+
 
 
 (defn brepl []
   [:div
    [connecty-thing]
-   [sendy-thing]
-   [output-thingy]])
+   [:div {:style {:width "50%"}}
+    [sendy-thing]
+    [output-thingy]]])
 
 ;; ;; this is what you call for the first mount
 (defn mount []
@@ -159,3 +191,9 @@
 
 ;; this only gets called once
 (defonce start-up (do (mount) true))
+
+
+
+;; (comment
+;;   (connect-to-repl! "8080" "8888")
+;;   )

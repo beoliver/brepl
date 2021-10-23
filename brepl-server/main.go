@@ -42,7 +42,7 @@ func readFromRepl(ws *websocket.Conn, repl ReplConn) {
 	scanner := bufio.NewScanner(repl.conn)
 	for scanner.Scan() {
 		bytes := scanner.Bytes()
-		log.Printf("Scanner read: %+v", bytes)
+		log.Printf("Scanner read: %+v - as string %s\n", bytes, string(bytes))
 		err := ws.WriteMessage(websocket.TextMessage, bytes)
 		if err != nil {
 			return

@@ -10,7 +10,8 @@ instance of a clojure prepl socket server.
 If you add the following `jvm-opts` to your `:user` profile located at `~/.lein/profiles.clj`.
 
 ```clojure
-{:user {:jvm-opts ["-Dclojure.server.repl={:port 8888 :accept clojure.core.server/io-prepl}"]}}
+{:user {:dependencies [["org.clojure/tools.analyzer.jvm" "1.1.0"]]
+	    :jvm-opts ["-Dclojure.server.repl={:port 8888 :accept clojure.core.server/io-prepl}"]}}
 ```
 
 This will start a `prepl` server when you run `lein repl`.
