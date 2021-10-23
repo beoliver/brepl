@@ -5,7 +5,7 @@
    [reagent.core :as r]
    [reagent.dom :as dom]))
 
-
+;; http://localhost:9500/
 
 ;;; should ONLY be used to dev debugging on localhost...
 (enable-console-print!)
@@ -62,8 +62,6 @@
 ;;   (connect-to-repl! "8080" "8888")
 ;;   )
 
-(defn noop [])
-
 (defn port-input [partial-port]
   [:input {:type "text"
            :value @partial-port
@@ -94,11 +92,22 @@
                 :value "Eval"
                 :on-click (fn [_] (write @repl @expr))}]])))
 
+
+(def colors (r/atom {:red "#fe6f5e"
+                     :pink "#fde2e4"
+                     :blue "#ace5ee"
+                     :green1 "#ace1af"
+                     :green2 "#e2ece9"}))
+
 (defn msg->colour [msg]
-  (cond (:exception msg)    "pink"         ; error
-        (= :ret (:tag msg)) "#fafafa"   ; value
-        (= :out (:tag msg)) "yellow"    ; side effect
-        :else "white"))
+  (cond (:exception msg)    {:foreground "black"
+                             :background (:pink @colors)}      ; error
+        (= :ret (:tag msg)) {:foreground "black"
+                             :background (:green2 @colors)} ;;"green" ;;"#fafafa"   ; value
+        (= :out (:tag msg)) {:foreground "white"
+                             :background "black"}    ; side effect
+        :else {:foreground "black"
+               :background "white"}))
 
 
 (defn maybe-format-val [s]
@@ -109,12 +118,17 @@
 
 
 (defn output-thingy []
-  [:div (map-indexed
-         (fn [i msg] ^{:key i} [:div
-                                {:style {:background-color (msg->colour msg)}}
-                                [:hr]
-                                [:pre (maybe-format-val (:val msg))]])
-         (:repl-messages @state))])
+  [:div {:style {:font-size "1em"}}
+   (map-indexed
+    (fn [i msg]
+      ^{:key i} [:div
+                 {:style {:padding "1em 1em" :margin "0 0"
+                          :background-color (:background (msg->colour msg))
+                          :color (:foreground (msg->colour msg))
+                          :border-bottom "1px solid black"}}
+                 [:pre {:style {:padding "0 0" :margin "0 0"}}
+                  (maybe-format-val (:val msg))]])
+    (:repl-messages @state))])
 
 
 (defn brepl []
