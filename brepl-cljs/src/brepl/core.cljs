@@ -110,11 +110,23 @@
                :background "white"}))
 
 
+
 (defn maybe-format-val [s]
   (try (-> (edn/read-string s)
            pprint/pprint
            with-out-str)
        (catch js/Error _ s)))
+
+
+(defn response-div [msg]
+  (let [result (maybe-format-val (:val msg))]
+    [:div
+     (if (:exception msg)
+       [:details
+        [:summary "ERROR"]
+        [:pre {:style {:padding "0 0" :margin "0 0"}} result]]
+       [:pre {:style {:padding "0 0" :margin "0 0"}}
+        (maybe-format-val (:val msg))])]))
 
 
 (defn output-thingy []
@@ -126,8 +138,8 @@
                           :background-color (:background (msg->colour msg))
                           :color (:foreground (msg->colour msg))
                           :border-bottom "1px solid black"}}
-                 [:pre {:style {:padding "0 0" :margin "0 0"}}
-                  (maybe-format-val (:val msg))]])
+                 [response-div msg]
+                 ])
     (:repl-messages @state))])
 
 
