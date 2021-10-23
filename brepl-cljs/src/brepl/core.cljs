@@ -123,7 +123,7 @@
     [:div
      (if (:exception msg)
        [:details
-        [:summary "ERROR"]
+        [:summary {:style {:font-family "sans-serif"}} [:b "Exception"]]
         [:pre {:style {:padding "0 0" :margin "0 0"}} result]]
        [:pre {:style {:padding "0 0" :margin "0 0"}}
         (maybe-format-val (:val msg))])]))
