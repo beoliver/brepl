@@ -39,10 +39,17 @@ func openReplConn(port string) (ReplConn, error) {
 }
 
 func readFromRepl(ws *websocket.Conn, repl ReplConn) {
+	// TODO: needed to set a larger buffer size so that
+	// I could read the metadata from clojure.core :|
+	// This is a hack as anything hardcoded (size) will fail
+	// then the input is larger...
 	scanner := bufio.NewScanner(repl.conn)
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, 1024*1024)
 	for scanner.Scan() {
+		log.Printf("Scanner Scan\n")
 		bytes := scanner.Bytes()
-		log.Printf("Scanner read: %+v - as string %s\n", bytes, string(bytes))
+		log.Printf("Scanner read as string: %s\n", string(bytes))
 		err := ws.WriteMessage(websocket.TextMessage, bytes)
 		if err != nil {
 			return
@@ -52,6 +59,7 @@ func readFromRepl(ws *websocket.Conn, repl ReplConn) {
 
 func writeToRepl(repl ReplConn, ws *websocket.Conn) {
 	for {
+		log.Println("about to read message from ws")
 		mt, message, err := ws.ReadMessage()
 		if err != nil {
 			log.Println("read:", err)
@@ -59,11 +67,11 @@ func writeToRepl(repl ReplConn, ws *websocket.Conn) {
 		}
 		log.Printf("recv: %s with bytes %+v and with message type: %d", message, message, mt)
 		sentBytes, err := fmt.Fprintf(repl.conn, "%s\n",string(message))
-		log.Printf("wrote %d bytes to prepl", sentBytes)
 		if err != nil {
 			log.Println("prepl write:", err)
 			break
 		}
+		log.Printf("wrote %d bytes to prepl", sentBytes)
 	}
 }
 

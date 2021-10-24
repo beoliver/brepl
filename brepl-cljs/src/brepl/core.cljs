@@ -1,6 +1,8 @@
 (ns ^:figwheel-hooks brepl.core
   (:require
-   [cljs.pprint :as pprint :refer [cl-format]]
+   [brepl.ws :as ws]
+   [brepl.namespaces :as namespaces]
+   [cljs.pprint :as pprint]
    [cljs.tools.reader.edn :as edn]
    [reagent.core :as r]
    [reagent.dom :as dom]))
@@ -10,15 +12,11 @@
 ;;; should ONLY be used to dev debugging on localhost...
 (enable-console-print!)
 
-(defn- create-ws!
-  [hostname ws-port repl-port]
-  (js/WebSocket. (cl-format nil "ws://~a:~a/prepl/~a" hostname ws-port repl-port)))
-
 (defonce repl (atom nil))
 
 (defonce state (r/atom {:repl-connected? false
-                        :ws-error      nil
-                        :repl-messages nil}))
+                        :ws-error        nil
+                        :repl-messages   nil}))
 
 (defprotocol REPL
   (read [repl expr])
@@ -41,9 +39,10 @@
   ([ws-port repl-port]
    (connect-to-repl! js/window.location.hostname ws-port repl-port))
   ([hostname ws-port repl-port]
-   (let [sock (create-ws! hostname ws-port repl-port)]
+   (let [sock (ws/create! hostname ws-port repl-port)]
      (.addEventListener sock "open"
                         (fn [_]
+                          (namespaces/init! hostname ws-port repl-port)
                           (swap! state assoc :repl-connected? true)))
      (.addEventListener sock "close"
                         (fn [_]
@@ -66,18 +65,26 @@
   [:input {:type "text"
            :placeholder "PORT"
            :maxLength "5" ; 65535
-           :size "4"
+           :size "5"
            :value @partial-port
            :on-change #(reset! partial-port (-> % .-target .-value))}])
 
+(def colors (r/atom {:red "#fe6f5e"
+                     :pink "#fde2e4"
+                     :blue "#ace5ee"
+                     :green1 "#ace1af"
+                     :green2 "#e2ece9"
+                     :yellow "##f2f2bf"}))
+
 
 (defn connecty-thing []
-  (let [port (r/atom "")]
+  (let [prepl-port (r/atom "8888")
+        ws-port (r/atom "8080")]
     (fn []
       [:div {:style {
                      :height "3em"
                      :font-family "monospace"
-                     :background-color "white"
+                     :background-color (:green2 @colors)
                      :display "flex"
                      :align-items "center"}}
        [:span {:style {:height "1em"
@@ -89,15 +96,18 @@
                        :display "inline-block"} }]
        (if-not (@state :repl-connected?)
          [:<>
-          [:span "Connect to prepl on localhost:"]
-          [port-input port]
+          [:span "Connect to prepl port"]
+          [port-input prepl-port]
+          [:span "using ws port"]
+          [port-input ws-port]
           [:input {:style {:margin-left "1em"}
                    :type "button"
                    :value "Connect"
-                   :on-click (fn [_] (->> (connect-to-repl! "8080" @port)
-                                          (reset! repl)))}]]
+                   :on-click (fn [_]
+                               (->> (connect-to-repl! @ws-port @prepl-port)
+                                    (reset! repl)))}]]
          [:<>
-          [:span "Connected to prepl on localhost:" @port]
+          [:span "Connected to prepl on localhost:" @prepl-port "via websocket port:" @ws-port]
           [:input {:style {:margin-left "1em"}
                    :type "button"
                    :value "Disconnect"
@@ -107,7 +117,6 @@
   [:textarea {:style {:width "50%"}
               :value @partial-expr
               :on-change #(reset! partial-expr (-> % .-target .-value))}])
-
 
 (defn sendy-thing []
   (let [expr (r/atom "")]
@@ -119,11 +128,7 @@
                 :on-click (fn [_] (read @repl @expr))}]])))
 
 
-(def colors (r/atom {:red "#fe6f5e"
-                     :pink "#fde2e4"
-                     :blue "#ace5ee"
-                     :green1 "#ace1af"
-                     :green2 "#e2ece9"}))
+
 
 (defn msg->colour [msg]
   (cond (:exception msg)    {:foreground "black"
@@ -173,13 +178,14 @@
            (:repl-messages @state)))])
 
 
-
 (defn brepl []
   [:div
    [connecty-thing]
+   [namespaces/namespace-info]
    [:div {:style {:width "50%"}}
     [sendy-thing]
     [output-thingy]]])
+
 
 ;; ;; this is what you call for the first mount
 (defn mount []
