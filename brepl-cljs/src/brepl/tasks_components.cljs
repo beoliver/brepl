@@ -73,18 +73,14 @@
 
 (defn apropos-results-component []
   (let [current-ns (get-in @tasks/state [:ns :name])]
-    [:div {:style {:font-size "1em"}}
+    [:div {:style {:font-size "1em" :overflow-x "auto"}}
      (doall (map-indexed
              (fn [i msg]
                ^{:key i} [:div
-                          {:style {:padding-left "1em"
-                                   :padding-top "0.5em"
+                          {:style {:padding-top "0.5em"
                                    :padding-bottom "0.5em"
                                    :border-bottom "0.5px solid black"
-                                   :margin "0 0"
-                                   :font-family "monospace"
-                                   :color "black"
-                                   }}
+                                   :font-family "monospace"}}
                           (if (= current-ns (namespace msg))
                             [:span {:style {:color "grey"}} (namespace msg)]
                             [:span {:style {:color "blue"}
@@ -98,9 +94,11 @@
 
 
 (defn apropos-component []
-  [:details {:style {:padding "1em 1em"}}
-   [:summary "apropos" ]
-   [apropos-search-component]
-   [apropos-results-component]
+  [:details
+   [:summary {:style {:font-family "sans-serif" :padding "1em 1em" :background-color "#e1e1e1"}}
+    "apropos" ]
+   [:div {:style {:padding "1em 1em" :background-color "#f1f1f1"}}
+    [apropos-search-component]
+    [apropos-results-component]]
    ]
   )
