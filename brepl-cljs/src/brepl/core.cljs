@@ -116,8 +116,9 @@
                    :value "Disconnect"
                    :on-click (fn [_] (close @repl))}]])])))
 
+
 (defn expr-input [partial-expr]
-  [:textarea {:spellcheck false
+  [:textarea {:spellCheck false
               :style {:font-family "monospace"
                       :font-size "2em"
                       :width "100%"
@@ -188,7 +189,7 @@
   [:div
    [connecty-thing]
    [:div {:style {:display "flex"}}
-    [:div {:style {:min-width "40em" :overflow-y "auto" :height "100vh"}}
+    [:div {:style {:min-width "35em" :overflow-y "auto" :height "100vh"}}
      [tasks-components/apropos-component]
      [tasks-components/ns-selector-component]
      [tasks-components/ns-publics-metadata-component]

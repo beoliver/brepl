@@ -11,6 +11,14 @@
     {:task (:task task-data)
      :result result}))
 
+(defmethod handle-task :metadata-for-symbol
+  [{:keys [namespace name]}]
+  (let [v (ns-resolve (symbol namespace) (symbol name))]
+    (-> v
+        meta
+        (select-keys [:arglists :doc :line :column :file :name :macro :ns])
+        (update :ns ns-name))))
+
 (defmethod handle-task :metadata-for-ns-publics
   [{:keys [name]}]
   (->> name
@@ -18,7 +26,9 @@
        ns-publics
        vals
        (map meta)
-       (map #(select-keys % [:arglists :doc :line :column :file :name :macro]))))
+       (map #(-> %
+                 (select-keys [:arglists :doc :line :column :file :name :macro :ns])
+                 (update :ns ns-name)))))
 
 (defmethod handle-task :list-all-ns-names [_] (mapv ns-name (all-ns)))
 

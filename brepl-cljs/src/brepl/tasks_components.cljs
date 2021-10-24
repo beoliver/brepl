@@ -50,7 +50,7 @@
 ;;; APROPOS
 
 (defn expr-input [partial-expr]
-  [:input {:spellcheck false
+  [:input {:spellCheck false
            :style {:font-family "monospace"
                    :font-size "1em"
                    :width "100%"}
@@ -70,35 +70,47 @@
                 :value "Search regex"
                 :on-click (fn [_] (tasks/apropos! @tasks/ws @query))}]])))
 
+(defn metadata-component [namespace what]
+  (let [msg (get-in @tasks/state [:metadata namespace what])]
+    [:div
+     {:style {:margin-bottom "2em"
+              :background-color "#fafafa"
+              :color "black"
+              }}
+     [:div {:style {:overflow-x "auto"
+                    :padding "0 0"
+                    :margin "0 0"}}
+      [:pre (str (:arglists msg))]
+      [:pre (:doc msg)]]]))
 
-(defn apropos-results-component []
+(defn apropos-grouped-results-component []
   (let [current-ns (get-in @tasks/state [:ns :name])]
-    [:div {:style {:font-size "1em" :overflow-x "auto"}}
-     (doall (map-indexed
-             (fn [i msg]
-               ^{:key i} [:div
-                          {:style {:padding-top "0.5em"
-                                   :padding-bottom "0.5em"
-                                   :border-bottom "0.5px solid black"
-                                   :font-family "monospace"}}
-                          (if (= current-ns (namespace msg))
-                            [:span {:style {:color "grey"}} (namespace msg)]
-                            [:span {:style {:color "blue"}
-                                    :on-click (fn [] (tasks/set-ns-name! @tasks/ws (namespace msg)))}
-                             (namespace msg)]
-                            )
-                          "/"
-                          [:span [:b (name msg)]]
-                          ])
-             (get-in @tasks/state [:apropos :results])))]))
-
+    [:div {:style {:font-size "1em" :font-family "monospace"}}
+     (doall (some->> (get-in @tasks/state [:apropos :results])
+                     (group-by namespace)
+                     (sort-by first) ; sort by the keys of the map (the namespaces)
+                     (map (fn [[ns-str ns-results]]
+                            ^{:key ns-str} [:details {:open true :style {:padding-top "1em"}}
+                                            [:summary [:span {:style {:color (if (= current-ns ns-str) "green" "blue")}} ns-str]]
+                                            [:div {:style {:overflow-x "auto" :padding-top "0.5em"}}
+                                             [:div {:style {:padding-left "0.5em"}}
+                                              (doall (some->> ns-results
+                                                              (map name) ;; 'clojure.core/conj becomes "conj"
+                                                              (map (fn [s] ^{:key s} [:details {:style {
+                                                                                                        ;; :background-color "pink"
+                                                                                                        :margin-top "0.7em"
+                                                                                                        :margin-bottom "0.7em"
+                                                                                                        :padding-bottom "0.5em"
+                                                                                                        :padding-top "0.5em"
+                                                                                                        :border-bottom "0.5px solid black"
+                                                                                                        }}
+                                                                                      [:summary {:on-click (fn [_] (tasks/metadata-for-symbol! @tasks/ws ns-str s))} [:span [:b s]]]
+                                                                                      [:div [metadata-component ns-str s]]]))))]]]))))]))
 
 (defn apropos-component []
   [:details
-   [:summary {:style {:font-family "sans-serif" :padding "1em 1em" :background-color "#e1e1e1"}}
-    "apropos" ]
-   [:div {:style {:padding "1em 1em" :background-color "#f1f1f1"}}
+   [:summary {:style {:font-family "sans-serif" :padding "1em 1em" :background-color "#f1f1f1"}}
+    [:b "apropos"] ]
+   [:div {:style {:padding "1em 1em" :background-color "#fafafa"}}
     [apropos-search-component]
-    [apropos-results-component]]
-   ]
-  )
+    [apropos-grouped-results-component]]])

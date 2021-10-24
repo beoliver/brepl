@@ -83,6 +83,18 @@
        (sort-by :name)
        (swap! state assoc-in [:ns :publics])))
 
+;;; metadata for a symbol
+
+(defn metadata-for-symbol! [sock ns-name symbol-name]
+  (->> `(brepl.tasks/handle {:task :metadata-for-symbol :namespace ~ns-name :name ~symbol-name})
+       str
+       (.send sock)))
+
+(defmethod handle-task-result :metadata-for-symbol
+  [{:keys [result]} _sock]
+  (swap! state assoc-in [:metadata (name (:ns result)) (name (:name result))] result))
+
+
 ;;; list all namespace names
 
 (defn list-all-ns-names! [sock]

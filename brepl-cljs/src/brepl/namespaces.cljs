@@ -89,7 +89,7 @@
                              ^{:key i} [:option {:value ns} ns])))]]])))
 
 (defn expr-input [partial-expr]
-  [:input {:spellcheck false
+  [:input {:spellCheck false
            :style {:font-family "monospace"
                    :font-size "1em"
                    :width "100%"}
