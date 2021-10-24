@@ -57,7 +57,9 @@
                             )))
      (.addEventListener sock "error"
                         (fn [event]
-                          (swap! state assoc :ws-error event)))
+                          (-> state
+                              (swap! assoc :ws-error event)
+                              (swap! assoc :repl-connected? false))))
      sock)))
 
 
@@ -74,7 +76,7 @@
                      :blue "#ace5ee"
                      :green1 "#ace1af"
                      :green2 "#e2ece9"
-                     :yellow "##f2f2bf"}))
+                     :yellow "#f2f2bf"}))
 
 
 (defn connecty-thing []
@@ -84,7 +86,7 @@
       [:div {:style {
                      :height "3em"
                      :font-family "monospace"
-                     :background-color (:green2 @colors)
+                     :background-color (:yellow @colors)
                      :display "flex"
                      :align-items "center"}}
        [:span {:style {:height "1em"
@@ -114,7 +116,11 @@
                    :on-click (fn [_] (close @repl))}]])])))
 
 (defn expr-input [partial-expr]
-  [:textarea {:style {:width "50%"}
+  [:textarea {:spellcheck false
+              :style {:font-family "monospace"
+                      :font-size "2em"
+                      :width "100%"
+                      :height "10em"}
               :value @partial-expr
               :on-change #(reset! partial-expr (-> % .-target .-value))}])
 
@@ -181,10 +187,13 @@
 (defn brepl []
   [:div
    [connecty-thing]
-   [namespaces/namespace-info]
-   [:div {:style {:width "50%"}}
-    [sendy-thing]
-    [output-thingy]]])
+   [:div {:style {:display "flex"}}
+    [:div {:style {:width "50%" :overflow-y "auto" :height "100vh"}}
+     [namespaces/namespace-info]]
+    [:div {:style {:width "50%" :overflow-y "auto" :height "100vh"}}
+     [sendy-thing]
+     [output-thingy]]
+    ]])
 
 
 ;; ;; this is what you call for the first mount
