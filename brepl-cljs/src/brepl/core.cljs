@@ -1,11 +1,12 @@
 (ns ^:figwheel-hooks brepl.core
   (:require
    [brepl.ws :as ws]
-   [brepl.namespaces :as namespaces]
    [cljs.pprint :as pprint]
    [cljs.tools.reader.edn :as edn]
    [reagent.core :as r]
-   [reagent.dom :as dom]))
+   [reagent.dom :as dom]
+   [brepl.tasks :as tasks]
+   [brepl.tasks-components :as tasks-components]))
 
 ;; http://localhost:9500/
 
@@ -42,7 +43,7 @@
    (let [sock (ws/create! hostname ws-port repl-port)]
      (.addEventListener sock "open"
                         (fn [_]
-                          (namespaces/init! hostname ws-port repl-port)
+                          (tasks/init! hostname ws-port repl-port)
                           (swap! state assoc :repl-connected? true)))
      (.addEventListener sock "close"
                         (fn [_]
@@ -189,7 +190,10 @@
    [connecty-thing]
    [:div {:style {:display "flex"}}
     [:div {:style {:min-width "40em" :overflow-y "auto" :height "100vh"}}
-     [namespaces/namespace-info]]
+     [tasks-components/apropos-component]
+     [tasks-components/ns-selector-component]
+     [tasks-components/ns-publics-metadata-component]
+     ]
     [:div {:style {:width "100%" :overflow-y "auto" :height "100vh"}}
      [sendy-thing]
      [output-thingy]]

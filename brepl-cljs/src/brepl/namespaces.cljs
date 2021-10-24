@@ -156,6 +156,6 @@
    [:div
     [apropos]
     [apropos-thingy]]
-   [namespace-thingy]
-   [ns-publics-thingy]
+   #_[namespace-thingy]
+   #_[ns-publics-thingy]
    ])
