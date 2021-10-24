@@ -188,9 +188,9 @@
   [:div
    [connecty-thing]
    [:div {:style {:display "flex"}}
-    [:div {:style {:width "50%" :overflow-y "auto" :height "100vh"}}
+    [:div {:style {:min-width "40em" :overflow-y "auto" :height "100vh"}}
      [namespaces/namespace-info]]
-    [:div {:style {:width "50%" :overflow-y "auto" :height "100vh"}}
+    [:div {:style {:width "100%" :overflow-y "auto" :height "100vh"}}
      [sendy-thing]
      [output-thingy]]
     ]])
