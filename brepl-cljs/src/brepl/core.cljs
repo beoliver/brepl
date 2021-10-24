@@ -148,7 +148,6 @@
                :background "white"}))
 
 
-
 (defn maybe-format-val [s]
   (try (-> (edn/read-string s)
            pprint/pprint

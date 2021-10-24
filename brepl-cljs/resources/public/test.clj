@@ -1,6 +1,6 @@
 ;;; CODE to RUN
-
-(in-ns 'brepl.tasks #_(symbol (gensym "brepl")))
+(remove-ns 'brepl.tasks) ;; if reloading just nuke anything we already have
+(in-ns 'brepl.tasks)
 
 (clojure.core/use 'clojure.core)
 
