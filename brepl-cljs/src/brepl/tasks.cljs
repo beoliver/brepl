@@ -3,8 +3,7 @@
    [brepl.ws :as websockets]
    [brepl.utils :as utils]
    [reagent.core :as r]
-   [cljs.tools.reader.edn :as edn]
-   [cljs.pprint :refer [cl-format]]))
+   [cljs.tools.reader.edn :as edn]))
 
 ;;; TODO once the structure is a bit clearer this could/should
 ;;; be pulled into separate namespaces
