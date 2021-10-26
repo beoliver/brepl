@@ -5,30 +5,48 @@
 
 ;;; COMPONENTS
 
+;;; display a folding tree for namespaces
+
 (defn recursive-ns-tree-component [display-config tree depth]
-  (let [inner (dissoc tree :leaf)]
-    (reduce (fn [acc [prefix children]]
-              (cond
-                (and (:leaf children) (= 1 (count children)))
-                (conj acc [:div {:style {:color "blue" :background-color "#fafafa"}
-                                 :on-click (fn [] (tasks/set-ns-name! @tasks/ws (:leaf children)))}
-                           [:i {:href (:leaf children)} (if (:ns-tree-path @(:config state/state))
-                                                          (:leaf children)
-                                                          prefix)]])
-                ;;
-                (:leaf children)
-                (conj acc [:details {;; :open (< depth (:ns-tree-open-depth @(:config state/state)))
-                                     :style {:background ((:depth->color display-config) depth)}}
-                           [:summary [:b [:a {:href (:leaf children)} (:leaf children)]]]
-                           (recursive-ns-tree-component display-config (dissoc children :leaf) (inc depth))])
-                ;;
-                :else
-                (conj acc [:details {;; :open (< depth (:ns-tree-open-depth @(:config state/state)))
-                                     :style {:background ((:depth->color display-config) depth)}}
-                           [:summary prefix]
-                           (recursive-ns-tree-component display-config children (inc depth))])))
-            [:div {:style {:background "#fafafa" :padding-left (if (= depth 0) "0px" "10px") :margin-left "2px" :padding-top "5px" :padding-bottom "5px"}}]
-            (sort-by first inner))))
+  ;; reduce over the elements of the tree.
+  (->> tree
+       (sort-by first)
+       (reduce (fn [acc [prefix children]]
+                 (cond
+                   ;; case 1. There is EXACTLY one child and it is a `:leaf`
+                   ;; {"b.c" {:leaf "a.b.c"}
+                   (and (:leaf children) (= 1 (count children)))
+                   ;; the current prefix is the last segment in a namespace path
+                   ;; eg `clojure.main`
+                   (let [full-ns-name (:leaf children)
+                         display-value (if (:ns-tree-path @(:config state/state)) full-ns-name prefix)]
+                     (conj acc [:div {:style {:margin-top "2px" :color "blue" :background-color "#fafafa"}
+                                      :on-click (fn [] (tasks/set-ns-name! @tasks/ws full-ns-name))}
+                                [:b display-value]]))
+                   ;; case 2. This is a `:leaf` in the children
+                   ;; {"b.c" {:leaf "a.b.c", "d" {:leaf "a.b.c.d"}}}
+                   (:leaf children)
+                   ;; the current prefix is the last segment in a namespace path
+                   ;; the current prefix is a prefix to some other namespace
+                   ;; eg `clojure.core` and `clojure.core.server`
+                   (let [full-ns-name (:leaf children)
+                         display-value (if (:ns-tree-path @(:config state/state)) full-ns-name prefix)]
+                     (conj acc [:details {:style {:margin-top "2px" :background ((:depth->color display-config) depth)}}
+                                [:summary prefix]
+                                [:div {:style {:margin-top "2px" :color "blue" :background-color "#fafafa"}
+                                       :on-click (fn [] (tasks/set-ns-name! @tasks/ws full-ns-name))}
+                                 [:b display-value]]
+                                (recursive-ns-tree-component display-config (dissoc children :leaf) (inc depth))]))
+                   ;; case 3. No leaves here...
+                   :else
+                   (conj acc [:details {:style {:margin-top "2px" :background ((:depth->color display-config) depth)}}
+                              [:summary prefix]
+                              (recursive-ns-tree-component display-config children (inc depth))])))
+               [:div {:style {:background "#fafafa"
+                              :padding-left (if (= depth 0) "0px" "10px")
+                              :margin-left "2px"
+                              :padding-top "0.3em"
+                              :padding-bottom "0.3em"}}])))
 
 
 (defn ns-tree-component [display-config]
@@ -44,7 +62,7 @@
                   tasks/ns-name-tree)]
     (when (seq ns-names)
       [:div
-       {:style {:font-family "monospace"}}
+       {:style {:font-family "'JetBrains Mono', monospace" :font-size "0.8em"}}
        [recursive-ns-tree-component display-config tree 0]])))
 
 ;;; NAMESPACE REGEX
@@ -68,7 +86,7 @@
                                 :pattern (:ns-re-remove @(:config state/state))})
 
         display-config (r/atom {:expand-leaves false
-                                :depth->color {0 "gold" 1 "green" 2 "red" 3 "orange" 4 "brown" 5 "yellow"}})
+                                :depth->color {0 "#ebebff" 1 "#d8d8ff" 2 "#c4c4ff" 3 "#b1b1ff" 4 "#9d9dff"} #_{0 "gold" 1 "green" 2 "red" 3 "orange" 4 "brown" 5 "yellow"}})
 
         update-pattern-fn (fn [key pat]
                             (try (re-pattern pat)
@@ -83,7 +101,7 @@
                                      :ns-re-filter (swap! filter-pattern merge {:error? true :pattern pat})
                                      :ns-re-remove (swap! remove-pattern merge {:error? true :pattern pat})))))]
     (fn []
-      [:details
+      [:details {:open true}
        [:summary {:style {:font-family "sans-serif" :padding "1em 1em" :background-color "#a1a1f1"}}
         [:b "Namespace Browser"] ]
        [:div {:style {:padding "1em 1em" :background-color "#fafafa"}}
@@ -165,9 +183,7 @@
 
 (defn input-field [partial-expr]
   [:input {:spellCheck false
-           :style {:font-family "monospace"
-                   :font-size "1em"
-                   :width "100%"}
+           :style {:width "100%"}
            :value @partial-expr
            :on-change #(let [s (-> % .-target .-value)]
                          (tasks/apropos! @tasks/ws s)
@@ -178,7 +194,6 @@
     (fn []
       [:div {:style {
                      :height "3em"
-                     :font-family "monospace"
                      :display "flex"
                      :align-items "center"}}
        [input-field query]
@@ -203,7 +218,7 @@
   (let [current-ns (get-in @tasks/state [:ns :name])
         ns-pattern (re-pattern (:ns-re-filter @(:config state/state)))
         ns-ignore-pattern (when-let [p (:ns-re-remove @(:config state/state))] (re-pattern p))]
-    [:div {:style {:font-size "1em" :font-family "monospace"}}
+    [:div {:style {:font-family "'JetBrains Mono', monospace" :font-size "0.8em"}}
      (doall (some->> (get-in @tasks/state [:apropos :results])
                      (group-by namespace)
                      (sort-by first) ; sort by the keys of the map (the namespaces)

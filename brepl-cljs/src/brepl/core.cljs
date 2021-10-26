@@ -1,6 +1,7 @@
 (ns ^:figwheel-hooks brepl.core
   (:require
    [brepl.ws :as ws]
+   [brepl.repl :as repl]
    [brepl.state :as state]
    [cljs.pprint :as pprint]
    [cljs.tools.reader.edn :as edn]
@@ -9,6 +10,7 @@
    [brepl.tasks :as tasks]
    [brepl.tasks-components :as tasks-components]
    [brepl.utils :as utils]))
+
 
 ;; http://localhost:9500/
 
@@ -195,6 +197,7 @@
      ]
     [:div {:style {:width "100%" :overflow-y "auto" :height "100vh"}}
      [sendy-thing]
+     [repl/repl]
      [output-thingy]]
     ]])
 
