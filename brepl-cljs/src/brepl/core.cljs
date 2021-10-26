@@ -1,12 +1,14 @@
 (ns ^:figwheel-hooks brepl.core
   (:require
    [brepl.ws :as ws]
+   [brepl.state :as state]
    [cljs.pprint :as pprint]
    [cljs.tools.reader.edn :as edn]
    [reagent.core :as r]
    [reagent.dom :as dom]
    [brepl.tasks :as tasks]
-   [brepl.tasks-components :as tasks-components]))
+   [brepl.tasks-components :as tasks-components]
+   [brepl.utils :as utils]))
 
 ;; http://localhost:9500/
 
@@ -23,16 +25,10 @@
   (read [repl expr])
   (close [repl]))
 
+
 (extend-type js/WebSocket REPL
              (read [ws expr] (.send ws expr))
              (close [ws] (.close ws)))
-
-
-#_(defrecord Repl [conn]
-    REPL
-    (close [_] (.close conn))
-    (read [_ expr] (.send conn expr)))
-
 
 (defn connect-to-repl!
   ([repl-port]
@@ -81,8 +77,8 @@
 
 
 (defn connecty-thing []
-  (let [prepl-port (r/atom "8888")
-        ws-port (r/atom "8080")]
+  (let [prepl-port (r/atom (str (:prepl-port @(:config state/state))))
+        ws-port (r/atom (str (:ws-port @(:config state/state))))]
     (fn []
       [:div {:style {
                      :height "3em"
@@ -120,7 +116,7 @@
 (defn expr-input [partial-expr]
   [:textarea {:spellCheck false
               :style {:font-family "monospace"
-                      :font-size "2em"
+                      :font-size "1em"
                       :width "100%"
                       :height "10em"}
               :value @partial-expr
@@ -171,6 +167,7 @@
         (maybe-format-val (:val msg))])]))
 
 
+
 (defn output-thingy []
   [:div {:style {:font-size "1em"}}
    (doall (map-indexed
@@ -189,9 +186,11 @@
   [:div
    [connecty-thing]
    [:div {:style {:display "flex"}}
-    [:div {:style {:min-width "35em" :overflow-y "auto" :height "100vh"}}
+    [:div {:style {:min-width "35em"
+                   :max-width "35em" :overflow-y "auto" :height "100vh"}}
+     [tasks-components/ns-component]
      [tasks-components/apropos-component]
-     [tasks-components/ns-selector-component]
+     #_[tasks-components/ns-selector-component]
      [tasks-components/ns-publics-metadata-component]
      ]
     [:div {:style {:width "100%" :overflow-y "auto" :height "100vh"}}
@@ -199,10 +198,12 @@
      [output-thingy]]
     ]])
 
-
 ;; ;; this is what you call for the first mount
+
 (defn mount []
+  (state/set-config! (utils/query-param-map js/window.location.search))
   (dom/render [brepl] (js/document.getElementById "app")))
+
 
 ;; and this is what figwheel calls after each save
 (defn ^:after-load ^:export main []

@@ -3,10 +3,54 @@
    [brepl.ws :as websockets]
    [brepl.utils :as utils]
    [reagent.core :as r]
-   [cljs.tools.reader.edn :as edn]))
+   [cljs.tools.reader.edn :as edn]
+   [clojure.string :as str]))
 
 ;;; TODO once the structure is a bit clearer this could/should
 ;;; be pulled into separate namespaces
+
+(defn- as-segments [s]
+  (str/split s #"\."))
+
+(defn- longest-common-prefix [xs]
+  (loop [prefix []
+         xs xs]
+    (let [p-set (set (map first xs))]
+      (cond
+        (not= (count p-set) 1) prefix
+        (= p-set #{nil})       prefix
+        :else                  (recur (into prefix p-set) (map rest xs))))))
+
+(defn- strip-common-prefix [segment-vectors]
+  (if (= 1 (count segment-vectors))
+    {:prefix (first segment-vectors) :remaining []}
+    (let [common-prefix (longest-common-prefix segment-vectors)
+          n             (count common-prefix)]
+      {:prefix    common-prefix
+       :remaining (map #(subvec % n) segment-vectors)})))
+
+(defn- common-prefix-tree [leaf-key segment-vectors]
+  (let [seq-of-segment-vectors (vals (group-by first segment-vectors))]
+    (reduce (fn [acc segment-vectors]
+              (let [{:keys [prefix remaining]} (strip-common-prefix segment-vectors)]
+                (cond
+                  (= prefix [])    (assoc acc leaf-key true)
+                  (= remaining []) (assoc acc (str/join "." prefix) {leaf-key true})
+                  :else (assoc acc (str/join "." prefix) (common-prefix-tree leaf-key remaining)))))
+            {} seq-of-segment-vectors)))
+
+(defn- add-paths-to-prefix-tree [leaf-key separator path tree]
+  (reduce-kv (fn [acc prefix subtree]
+               (if (= prefix leaf-key)
+                 (assoc acc prefix (str/join separator path))
+                 (assoc acc prefix (add-paths-to-prefix-tree leaf-key separator (conj path prefix) subtree))))
+             {} tree))
+
+(defn prefix-tree [leaf-key separator segments]
+  (->> segments
+       (common-prefix-tree leaf-key)
+       (add-paths-to-prefix-tree leaf-key separator [])))
+
 
 ;;; We create our own websocket connection
 
@@ -14,14 +58,15 @@
 
 ;;;
 
-(def ^:private empty-tasks-state {:brepl-ns nil
+(def ^:private empty-tasks-state {:ns-regex {:remove nil :filter nil} ;; match everything
+                                  :brepl-ns nil
                                   :ns {:name nil :publics nil}
                                   :all-ns-names nil
                                   :apropos {:term nil :results nil}})
 
 ;;;
 
-(defonce state (r/atom empty-tasks-state))
+(def state (r/atom empty-tasks-state))
 
 ;;;
 
@@ -104,10 +149,15 @@
 
 (defmethod handle-task-result :list-all-ns-names
   [{:keys [result]} _sock]
-  (->> result
-       (map name)
-       sort
-       (swap! state assoc :all-ns-names)))
+  (let [ns-names (map name result)]
+    (->> ns-names
+         sort
+         (swap! state assoc :all-ns-names))))
+
+(defn ns-name-tree [ns-names]
+  (->> ns-names
+       (map as-segments)
+       (prefix-tree :leaf ".")))
 
 ;;; apropos
 
@@ -120,6 +170,7 @@
 (defmethod handle-task-result :apropos
   [{:keys [result]}]
   (swap! state assoc-in [:apropos :results] result))
+
 
 ;;; initialize the tasks websocket
 
