@@ -72,24 +72,41 @@
 ;;; MAIN -----------------------------------------------------------------
 
 (defn main-component []
-  [:div {:style {:height "100vh"}}
+  [:div {:style {
+                 ;;:background-color "orange"
+                 :width "100%"
+                 :height "100vh"}}
    ;; HEADER
-   [:div #_{:style {:height "3em"}}
+   [:div
     [socket-connector-component]]
    ;; CONTENT
    [:div {:style {:height "calc(100vh - 2em)"
                   :display "flex"}}
     ;; LEFT
-    [:div {:style {:min-width "25em"
-                   :max-width "25em" :overflow-y "auto" :height "calc(100vh - 2em)"}}
+    [:div {:style {:resize "horizontal"
+                   ;; :background-color "pink"
+                   :min-width  "20em"
+                   :width      "40em"
+                   :overflow-y "scroll"
+                   :height     "calc(100vh-2em)"
+                   ;; :max-height     "calc(100vh-2em)"
+                   }}
      [browser/ns-component]
      [browser/apropos-component]
      [browser/ns-publics-metadata-component]
      ]
     ;; RIGHT
-    [:div {:style {:width "100%" :background-color (:black-2 @config/config)}}
-     [repl/repl-input-component]
-     [:div {:style {:overflow-y "auto"}}
+    [:div {:style {;; :resize "horizontal"
+                   :width "100%"
+                   :height "calc(100vh-2em)"
+                   :overflow-y "scroll"
+                   :background-color (:black-2 @config/config)}}
+     [:div
+      [repl/repl-input-component]]
+     [:div {:style {;; :resize "horizontal"
+                    :width "100%"
+                    :height "calc(100vh-2em)"
+                    :background-color (:black-2 @config/config)}}
       [repl/repl-output-component]]
      ]
     ]

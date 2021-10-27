@@ -29,8 +29,6 @@
                     :apropos {:term nil :results nil}}))
 ;;;
 
-(defn close! [] (ws/socket-close! sock-name))
-
 (defmulti on-task-result :task)
 
 ;;;

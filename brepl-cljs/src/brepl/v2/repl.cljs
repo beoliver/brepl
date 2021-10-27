@@ -74,7 +74,7 @@
                             (reset! shift-active false)))
              :on-input #(->> % .-target .-innerText (reset! expr))
              :style {:white-space "pre-wrap" ;; this is vital or newlines and spaces cause errors!!!
-                     :padding "1em 1em"
+                     ;;:padding "1em 1em"
                      :width "100%"
                      :max-height "30vh"
                      :min-height "30vh"
@@ -147,7 +147,8 @@
 
 (defn repl-output-component
   []
-  (into [:div {:style {:padding "1em 1em"
+  (into [:div {:style {:height "100%"
+                       :padding "1em 1em"
                        :font-family "'JetBrains Mono', monospace"
                        :font-size "0.8em"}}]
         (map-indexed (fn [i x] ^{:key i} [:div {:style {:height "1.6em"
