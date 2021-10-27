@@ -6,7 +6,7 @@
 (def state {:config (r/atom {:prepl-port 8888
                              :ws-port 8080
                              :ns-re-filter ".*"
-                             :ns-re-remove nil
+                             :ns-re-remove "^brepl"
                              :ns-tree-open-depth 1
                              :ns-tree-path true})})
 

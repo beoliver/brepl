@@ -77,15 +77,15 @@
                      :green2 "#e2ece9"
                      :yellow "#f2f2bf"}))
 
-
 (defn connecty-thing []
   (let [prepl-port (r/atom (str (:prepl-port @(:config state/state))))
         ws-port (r/atom (str (:ws-port @(:config state/state))))]
     (fn []
       [:div {:style {
-                     :height "3em"
+                     :height "2em"
                      :font-family "monospace"
-                     :background-color (:yellow @colors)
+                     :background-color "#142839"#_(:yellow @colors)
+                     :color "#fafafa"
                      :display "flex"
                      :align-items "center"}}
        [:span {:style {:height "1em"
@@ -97,10 +97,10 @@
                        :display "inline-block"} }]
        (if-not (@state :repl-connected?)
          [:<>
-          [:span "Connect to prepl port"]
-          [port-input prepl-port]
-          [:span "using ws port"]
+          [:span "ws://localhost:"]
           [port-input ws-port]
+          [:span {:style {:padding-left "10px"} } "-> localhost:"]
+          [port-input prepl-port]
           [:input {:style {:margin-left "1em"}
                    :type "button"
                    :value "Connect"
@@ -108,32 +108,40 @@
                                (->> (connect-to-repl! @ws-port @prepl-port)
                                     (reset! repl)))}]]
          [:<>
-          [:span "Connected to prepl on localhost:" @prepl-port "via websocket port:" @ws-port]
+          [:span "ws://localhost:" @ws-port " -> localhost:" @prepl-port ]
           [:input {:style {:margin-left "1em"}
                    :type "button"
                    :value "Disconnect"
                    :on-click (fn [_] (close @repl))}]])])))
 
 
+;;;
+;;;
+
 (defn expr-input [partial-expr]
-  [:textarea {:spellCheck false
-              :style {:font-family "monospace"
-                      :font-size "1em"
+  [:textarea {:spell-check false
+              :style {:resize "none"
+                      :font-family "'JetBrains Mono', monospace"
+                      :font-size "0.8em"
                       :width "100%"
-                      :height "10em"}
+                      :height "100%"}
               :value @partial-expr
               :on-change #(reset! partial-expr (-> % .-target .-value))}])
 
+
 (defn sendy-thing []
-  (let [expr (r/atom "")]
+  (let [state (r/atom {:expr "" :keys #{}})
+        send-fn (fn []
+                  (js/console.log "SEND FUNCTION")
+                  (read @repl (:expr @state)))]
     (fn []
-      [:div
-       [expr-input expr]
+      [:div {:style {:width "90%" #_:height #_"10em"}}
+       #_[expr-input expr]
+       [repl/repl-component state send-fn]
        [:input {:type "button"
                 :value "Eval"
-                :on-click (fn [_] (read @repl @expr))}]])))
-
-
+                :on-click (fn [_]
+                            (read @repl (:expr @state)))}]])))
 
 
 (defn msg->colour [msg]
@@ -183,21 +191,30 @@
                         ])
            (:repl-messages @state)))])
 
+(def repl-atom (atom nil))
+
+
+(defn init-connection-state! []
+  {:*prepl-port (r/atom (str (:prepl-port @(:config state/state))))
+   :*ws-port (r/atom (str (:ws-port @(:config state/state))))
+   :*connected? (r/atom false)
+   :*try-connect? (r/atom false)
+   :*try-disconnect? (r/atom false)}
+  )
 
 (defn brepl []
-  [:div
+  [:div {:style {:font-family "'Roboto', sans-serif" :font-size "1em" }}
    [connecty-thing]
    [:div {:style {:display "flex"}}
-    [:div {:style {:min-width "35em"
-                   :max-width "35em" :overflow-y "auto" :height "100vh"}}
+    [:div {:style {:min-width "25em"
+                   :max-width "25em" :overflow-y "auto" :height "calc(100vh - 2em)"}}
      [tasks-components/ns-component]
      [tasks-components/apropos-component]
      #_[tasks-components/ns-selector-component]
      [tasks-components/ns-publics-metadata-component]
      ]
-    [:div {:style {:width "100%" :overflow-y "auto" :height "100vh"}}
+    [:div {:style {:width "100%" :overflow-y "auto" :height "calc(100vh - 2em)"}}
      [sendy-thing]
-     [repl/repl]
      [output-thingy]]
     ]])
 
