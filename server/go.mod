@@ -1,4 +1,4 @@
-module github.com.beoliver/brepl-server
+module github.com.beoliver/brepl
 
 go 1.17
 

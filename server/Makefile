@@ -1,4 +1,4 @@
-binary=bin/brepl-server
+binary=bin/brepl
 
 default: vet test build
 
@@ -12,7 +12,7 @@ test:
 	go test -v ./...
 
 dev: vet
-	go run main.go -port 8080 -ws-any-origin -serve-from ../public
+	go run main.go -port 8080 -ws-any-origin -serve-from ./public
 
 build: main.go
 	mkdir -p bin
