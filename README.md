@@ -28,28 +28,35 @@ greeting
 
 Web browsers don't allow raw sockets. However, we can open up a websocket and connect to a second server that can act as a "proxy".
 
-A small server [brepl-server](./brepl-server) (written in GO) serves this role as well as serving the static html/js/ect for the frontent.
+A small [server](./server) (written in GO) serves this role as well as serving the static html/js/ect for the frontent.
 
 ```
-[BROWSER]<---websocket--->[brepl-server]<---TCP--->[CLOJURE]
-                                                       |
-                                                       |
-[EMACS/VSCODE]<-------------------------------------[nREPL]
+[client]<---websocket--->[server]<---TCP--->[CLOJURE]
+                                                |
+                                                |
+[EMACS/VSCODE]<------------------------------[nREPL]
 ```
 The nice thing about this is that you can open a browser as well as having
 a project open in say, emacs.
 
-## brepl-server
+## server
 
 Start the server on your favourite port.
 
 ```bash
-$ cd brepl-server
-$ go run main.go -port 8080 -serve-from ../public
+$ cd server
+$ go run main.go -port 8080 -serve-from ./public
 ```
 
 You can now go to [http://localhost:8080](http://localhost:8080)!
 If you are still running the `prepl` on port `8888` from the earlier example, you will already be able to connect and have a look around.
+
+
+## client
+
+The client is written in clojurescript. The client should be built and copied into the `server/public` directory.
+If you are hacking on the client, you want to make sure that you start server with `-ws-any-origin` flag as during development
+you will be on a different port eg `9500`.
 
 ## Lein
 For a quick test you can add the following `jvm-opts` to your `:user` profile located at `~/.lein/profiles.clj`. You can can use whatever value for `:port` you want.
