@@ -1,96 +1,163 @@
 (ns ^:figwheel-hooks brepl.repl
-  (:require [brepl.ws :as ws]
+  (:require [brepl.sockets :as ws]
+            [brepl.config :as config]
             [cljs.tools.reader.edn :as edn]
-            [reagent.core :as r]))
+            [reagent.core :as r]
+            [cljs.pprint :refer [cl-format]]))
+
+(defonce sock-name :user-repl)
+
+;;; STATE
+(defonce connected? (r/atom false))
+(defonce history (r/atom nil))
+(defonce error? (r/atom false))
+(defonce current-namespace (r/atom nil))
+;;; END OF STATE
+
+(defn set-ns!
+  "allows the users namespace to be controlled
+  from outside of the repl.
+  This means that a user can use the file browser
+  to navigate and 'switch' namespaces"
+  [ns-str]
+  (->> (cl-format nil "(clojure.core/in-ns '~a)" ns-str)
+       (ws/socket-write! sock-name)))
+
+(defn connect! [connection-info]
+  (ws/new-named-socket! sock-name connection-info))
+
+(defn close! [] (ws/socket-close! sock-name))
+
+(defmethod ws/on-socket-open sock-name
+  [_ _]
+  (reset! connected? true)
+  (reset! error? false))
+
+(defmethod ws/on-socket-close sock-name
+  [_ _] (reset! connected? false))
+
+(defn maybe-replace [old new] (or new old))
+
+(defmethod ws/on-socket-message sock-name
+  [_ event] (let [data (->> event
+                            .-data
+                            edn/read-string)]
+              (swap! history conj data)
+              (swap! current-namespace maybe-replace (:ns data))))
+
+(defmethod ws/on-socket-error sock-name
+  [_ _]
+  (reset! connected? false)
+  (reset! error? true))
 
 
-(defprotocol Repl
-  (open!  [this])
-  (write! [this expr])
-  (close! [this]))
+(defn repl-input-component
+  "
+  Lets the user eval the content using `Shift+Enter`
+  "
+  []
+  (let [shift-active (r/atom false)
+        expr         (r/atom "")]
+    (fn []
+      [:div {:content-editable @connected?
+             :on-key-down (fn [event]
+                            (let [k (.-key event)]
+                              (cond (= k "Tab") (.preventDefault event) ;; should also insert white space...
+                                    (= k "Shift")                     (reset! shift-active true)
+                                    (and (= k "Enter") @shift-active) (do (ws/socket-write! sock-name @expr)
+                                                                          ;; avoid spamming the server?
+                                                                          (reset! shift-active false))
+                                    :else                             nil)))
+             :on-key-up (fn [event]
+                          (when (= "Shift" (.-key event))
+                            (reset! shift-active false)))
+             :on-input #(->> % .-target .-innerText (reset! expr))
+             :style {:white-space "pre-wrap" ;; this is vital or newlines and spaces cause errors!!!
+                     ;;:padding "1em 1em"
+                     :width "100%"
+                     :max-height "30vh"
+                     :min-height "30vh"
+                     :overflow-y "auto"
+                     :background-color (if @connected? "#000000" "grey")
+                     :font-family "'JetBrains Mono', monospace"
+                     :font-size "0.8em"
+                     :color (if @connected? "#fafafa" "LightGray")}}])))
 
-(defrecord PreplAdapter [connection-info socket history connected? error?]
-  Repl
-  (write! [_ expr] (.send @socket expr))
-  (close! [this] (do (.close @socket)
-                     (reset! connected? false)
-                     this))
-  (open! [this]
-    (reset! socket (ws/create! (get-in connection-info [:ws :hostname])
-                               (get-in connection-info [:ws :port])
-                               (get-in connection-info [:prepl :port])))
-    (.addEventListener @socket "open"
-                       (fn [_]
-                         (reset! connected? true)
-                         #_(on-open this)))
-    (.addEventListener @socket "close"
-                       (fn [_]
-                         (reset! connected? true)))
-    (.addEventListener @socket "message"
-                       (fn [event]
-                         (let [data (.-data event)]
-                           (->> data
-                                edn/read-string
-                                (swap! history conj)))))
-    (.addEventListener @socket "error"
-                       (fn [_]
-                         (reset! error? true)
-                         (reset! connected? false)))
-    this))
+;;; HISTORY ITEMS
+
+(defn ret-exception-component
+  [{:keys [val ns ms form]}]
+  [:div {:style {:display "flex"}}
+   [:div {:style {:padding-right "1em" :color (:red @config/config)}} [:b "E"]]
+   [:div {:style {:background-color (:red-light @config/config)}}
+    [:span (:cause (edn/read-string val))]
+    [:div
+     [:span "trace:" val]
+     #_[:span "namespace: " ns]
+     #_[:span "took: " ms "ms"]
+     [:span "input: " form]
+     ]
+    ]]
+  )
+
+(defn ret-component
+  [{:keys [val ns ms form]}]
+  [:div {:style {:display "flex"}}
+   [:div {:style {:padding-right "1em" :color (:green @config/config)}} [:b "R"]]
+   [:div {:style {:background-color (:green-light @config/config)}}
+    [:div
+     [:span {:style {:padding-left "1em"
+                     :padding-right "1em"}} val]
+     #_[:span "namespace: " ns]
+     #_[:span "took: " ms "ms"]
+     [:span " <-"ms "ms—" [:span {:style {:padding-left "1em"
+                                          :padding-right "1em"}} form]]
+     ]
+    ]])
 
 
-(defn prepl-adapter [ws-addr prepl-addr]
-  (map->PreplAdapter {:connection-info {:ws    ws-addr
-                                        :prepl prepl-addr}
-                      :socket (atom nil) ;; just a normal atom
-                      :history (r/atom nil)
-                      :connected? (r/atom false)
-                      :error? (r/atom false)}))
 
 
-(comment
-  (def my-repl (prepl-adapter {:hostname "localhost" :port "8080"} {:hostname "localhost" :port "8888"}))
-  (open! my-repl)
+(defmulti prepl-data-to-component :tag)
+
+(defmethod prepl-data-to-component :ret
+  [{:keys [exception] :as data}]
+  (if exception
+    [ret-exception-component data]
+    [ret-component data]))
+
+(defmethod prepl-data-to-component :out
+  [{:keys [val]}]
+  [:div {:style {:display "flex"}}
+   [:div {:style {:padding-right "1em" :color (:blue @config/config)}} [:b "O"]]
+   [:div {:style {:background-color (:blue-light @config/config)}}
+    [:div
+     [:span {:style {:padding-left "1em"
+                     :padding-right "1em"}} val]]]])
+
+(defmethod prepl-data-to-component :err
+  [{:keys [val]}]
+  [:div {:style {:background-color (:red @config/config)}}
+   [:span [:b "E"] val]
+   [:span "error: " val]
+   ]
+  )
+
+(defmethod prepl-data-to-component :tap
+  [{:keys [val]}]
+  [:div {:style {:background-color (:yellow @config/config)}}
+   [:span [:b "T"] val]
+   [:span "tap: " val]
+   ]
   )
 
 
-(defn repl-component [state send-fn]
-  [:div {:content-editable true
-         :on-key-down (fn [event]
-                        (let [k (.-key event)]
-                          (if (and (= k "Enter")
-                                   (= (:keys @state) #{"Shift"}))
-                            (send-fn)
-                            (swap! state update :keys conj (.-key event)))))
-         :on-key-up (fn [event]
-                      (swap! state update :keys disj (.-key event)))
-         :on-input #(->> % .-target .-innerText (swap! state assoc :expr))
-         :style {:white-space "pre-wrap" ;; this is vital or newlines and spaces cause errors!!!
-                 :padding "1em 1em"
-                 :width "40em"
-                 :height "50vh"
-                 :background-color "#000000"
-                 :font-family "'JetBrains Mono', monospace"
-                 :font-size "0.8em"
-                 :color "#fafafa"}}])
-
-
-(defn repl-component-v2 [state repl]
-  [:div {:content-editable true
-         :on-key-down (fn [event]
-                        (let [k (.-key event)]
-                          (if (and (= k "Enter")
-                                   (= (:keys-down @state) #{"Shift"}))
-                            (write! repl (:expr @state))
-                            (swap! state update :keys-down conj (.-key event)))))
-         :on-key-up (fn [event]
-                      (swap! state update :keys-down disj (.-key event)))
-         :on-input #(->> % .-target .-innerText (swap! state assoc :expr))
-         :style {:white-space "pre-wrap" ;; this is vital or newlines and spaces cause errors!!!
-                 :padding "1em 1em"
-                 :width "40em"
-                 :height "50vh"
-                 :background-color "#000000"
-                 :font-family "'JetBrains Mono', monospace"
-                 :font-size "0.8em"
-                 :color "#fafafa"}}])
+(defn repl-output-component
+  []
+  (into [:div {:style {:height "100%"
+                       :padding "1em 1em"
+                       :font-family "'JetBrains Mono', monospace"
+                       :font-size "0.8em"}}]
+        (map-indexed (fn [i x] ^{:key i} [:div {:style {:height "1.6em"
+                                                        :overflow-x "hidden"}}
+                                          [prepl-data-to-component x]]) @history)))

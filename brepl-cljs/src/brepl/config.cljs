@@ -1,5 +1,5 @@
-(ns ^:figwheel-hooks brepl.v2.config
-  (:require [brepl.v2.utils :as utils]
+(ns ^:figwheel-hooks brepl.config
+  (:require [brepl.utils :as utils]
             [reagent.core :as r]))
 
 ;;; what things should be "export/imprt" abale?
@@ -11,11 +11,11 @@
                                :ns-re-remove "^brepl"
                                :ns-tree-open-depth 1
                                :ns-tree-path true
-                               :red "red"
+                               :red "#ff4d4d"
                                :red-light "#E6BAAC"
                                :green "#68e266"
                                :green-light "#ade5ac"
-                               :blue "blue"
+                               :blue "#59a6ff"
                                :blue-light "#ADD8E6"
                                :yellow "yellow"
                                :yellow-light "#f2f2bf"

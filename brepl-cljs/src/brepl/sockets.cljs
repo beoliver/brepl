@@ -1,4 +1,4 @@
-(ns ^:figwheel-hooks brepl.v2.sockets
+(ns ^:figwheel-hooks brepl.sockets
   (:require [cljs.pprint :refer [cl-format]]))
 
 (defonce ^:private sockets (atom {}))
