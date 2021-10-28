@@ -11,6 +11,20 @@ By including the following jvm options it is possible to connect to your running
 -Dclojure.server.repl={:port 8888 :accept clojure.core.server/io-prepl}
 ```
 
+For example, to just craete an "empty" repl, we could run the following clojure cli command
+
+```
+$ clj -J-Dclojure.server.repl="{:port 8888 :accept clojure.core.server/io-prepl}"
+Clojure 1.10.3
+user=> (def greeting "Hello")
+#'user/greeting
+user=>
+[1]  + 21173 suspended  clj
+$ nc localhost 8888
+greeting
+{:tag :ret, :val "\"Hello\"", :ns "user", :ms 0, :form "greeting"}
+```
+
 Web browsers don't allow raw sockets. However, we can open up a websocket and connect to a second server that can act as a "proxy".
 
 A small server [brepl-server](./brepl-server) (written in GO) serves this role as well as serving the static html/js/ect for the frontent.
@@ -50,10 +64,6 @@ If you go back to [http://localhost:8080](http://localhost:8080) you will now be
 
 To test you can use the `nc` command
 
-```clojure
-$ nc 127.0.0.1 8888
-*ns*
-{:tag :ret, :val "#object[clojure.lang.Namespace 0x64d79c43 \"user\"]", :ns "user", :ms 0, :form "*ns*"}
-```
+
 
 
