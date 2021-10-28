@@ -13,12 +13,12 @@ By including the following jvm options it is possible to connect to your running
 
 Web browsers don't allow raw sockets. However, we can open up a websocket and connect to a second server that can act as a "proxy".
 
-A small server [brepl-server]() (written in GO) serves this role as well as serving the static html/js/ect for the frontent.
+A small server [brepl-server](./brepl-server) (written in GO) serves this role as well as serving the static html/js/ect for the frontent.
 
 ```
 [BROWSER]<---websocket--->[brepl-server]<---TCP--->[CLOJURE]
                                                        |
-												       |
+                                                       |
 [EMACS/VSCODE]<-------------------------------------[nREPL]
 ```
 The nice thing about this is that you can open a browser as well as having
