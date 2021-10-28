@@ -249,18 +249,17 @@
     (fn []
       [:details {:open true}
        [:summary {:style {:font-family "sans-serif" :padding "1em 1em" :background-color "#a1a1f1"}}
-        [:b "Namespace Browser"] ]
+        [:b "loaded namespaces"] ]
        [:div {:style {:padding "1em 1em" :background-color "#fafafa"}}
-        [:p
-         "Use regular expressions to filter the tree of" [:em " visible "] "namsepaces. "
-         "When searching for symbols, the displayed results will belong to a" [:i " visible "] "namespace."
-         ]
         [:div {:style {:padding "0em 0em"}}
          [:span
           "Expand Leaf Paths"
           [:input {:type "checkbox"
                    :defaultChecked (:ns-tree-path @config/config)
                    :on-click (fn [] (swap! config/config update :ns-tree-path not))}]]
+         [:input {:type "button"
+                  :value "Reload Namespaces"
+                  :on-click (fn [] (list-all-ns-names))}]
          [:div {:style {:display "flex" :align-items "center"}} [:div {:style {:width "5em"}} "filter"] [ns-regex-input
                                                                                                          @filter-pattern
                                                                                                          update-pattern-fn]]
