@@ -18,8 +18,9 @@ $ clj -J-Dclojure.server.repl="{:port 8888 :accept clojure.core.server/io-prepl}
 Clojure 1.10.3
 user=> (def greeting "Hello")
 #'user/greeting
-user=>
-[1]  + 21173 suspended  clj
+```
+In a separate tab, we can use the `nc` command to interact with the repl
+```
 $ nc localhost 8888
 greeting
 {:tag :ret, :val "\"Hello\"", :ns "user", :ms 0, :form "greeting"}
@@ -47,7 +48,8 @@ $ cd brepl-server
 $ go run main.go -port 8080 -serve-from ../public
 ```
 
-You can now go to [http://localhost:8080](http://localhost:8080)! Notice that while you can interact with the page, you **can not** open a connection!
+You can now go to [http://localhost:8080](http://localhost:8080)!
+If you are still running the `prepl` on port `8888` from the earlier example, you will already be able to connect and have a look around.
 
 ## Lein
 For a quick test you can add the following `jvm-opts` to your `:user` profile located at `~/.lein/profiles.clj`. You can can use whatever value for `:port` you want.
