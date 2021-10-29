@@ -5,13 +5,16 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
+	"embed"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
+
 
 
 func readFromSock(ws *websocket.Conn, sock net.Conn) {
@@ -97,22 +100,51 @@ func (s *TcpProxyService) HandleWebsocket(w http.ResponseWriter, r *http.Request
 	connectToTcpSocket(ws, address)
 }
 
+// content holds our static web server content.
+
+//go:embed public
+var public embed.FS
+
 func main() {
-	port := flag.String("port", "8080", "web server port")
-	wsAnyOrigin := flag.Bool("ws-any-origin", false, "allow connections from different hosts/ports")
-	serveFrom := flag.String("serve-from", "public", "directory to serve static files from")
+
+	var port string
+	flag.StringVar(&port, "p", "8080", "web server port")
+	flag.StringVar(&port, "port", "8080", "web server port")
+
+	var root string
+	flag.StringVar(&root, "r", "", "root directory to serve static files from")
+	flag.StringVar(&root, "root", "", "root directory to serve static files from")
+
+	var wsAnyOrigin bool
+	flag.BoolVar(&wsAnyOrigin, "ws-any-origin", false, "allow connections from different hosts/ports")
 
 	flag.Parse()
-	addr := fmt.Sprintf("localhost:%s", *port)
 
-	serivce := tcpProxyService(*wsAnyOrigin)
+	addr := fmt.Sprintf("localhost:%s", port)
+	service := tcpProxyService(wsAnyOrigin)
 
-	fmt.Printf("Serving static files from '%s' on '%s'\n", *serveFrom, addr)
-	fmt.Printf("Allow websocket connections when 'origin' is not '%s': %t\n", addr, *wsAnyOrigin)
-	fmt.Printf("%s/tcp/{address} to establish websocket connection to a remote repl socket\n", addr)
+	fmt.Printf("Allow websocket connections when 'origin' is not '%s': %t\n", addr, wsAnyOrigin)
+	fmt.Printf("%s/tcp/{address} to establish websocket connection to a remote (repl) socket\n", addr)
 
-	myRouter := mux.NewRouter()
-	myRouter.HandleFunc("/tcp/{address}", serivce.HandleWebsocket)
-	myRouter.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(*serveFrom))))
-	log.Fatal(http.ListenAndServe(addr, myRouter))
+	muxRouter := mux.NewRouter()
+
+	muxRouter.HandleFunc("/tcp/{address}", service.HandleWebsocket)
+
+	// the content that we serve is embedded in the binary.
+	// this means that no matter where the binary is located, all static dependencies are present
+
+	if root != "" {
+		fmt.Printf("Serving static files from '%s'\n", root)
+		muxRouter.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(root))))
+	} else {
+		// needed to use fs.Sub...
+		// found this out via https://blog.carlmjohnson.net/post/2021/how-to-use-go-embed/
+		fsys, err := fs.Sub(public, "public")
+		if err != nil {
+			log.Fatal(err)
+		}
+		muxRouter.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.FS(fsys))))
+	}
+
+	log.Fatal(http.ListenAndServe(addr, muxRouter))
 }

@@ -4,6 +4,8 @@ default: vet test build
 
 clean:
 	rm -rf bin
+	rm -rf public
+	mkdir public
 
 vet:
 	go vet ./...
