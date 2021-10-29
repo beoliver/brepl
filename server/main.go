@@ -4,47 +4,26 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"olympos.io/encoding/edn"
 )
 
-type PreplResult struct {
-	Tag       edn.Keyword `edn:"tag"       json:"tag"`
-	Val       string      `edn:"val"       json:"val"`
-	Ns        string      `edn:"ns"        json:"ns"`
-	Ms        int64       `edn:"ms"        json:"ms"`
-	Form      string      `edn:"form"      json:"form"`
-	Exception bool        `edn:"exception" json:"exception"`
-}
 
-type ReplConn struct {
-	conn net.Conn
-	addr string
-}
+func readFromSock(ws *websocket.Conn, sock net.Conn) {
+	wa := ws.RemoteAddr().String()
+	ra := sock.RemoteAddr().String()
 
-// openReplConn allows us to communicate with the clojure socket server
-
-func openReplConn(port string) (ReplConn, error) {
-	address := fmt.Sprintf("localhost:%s", port)
-	conn, err := net.Dial("tcp", address)
-	if err != nil {
-		return ReplConn{}, err
-	}
-	return ReplConn{conn: conn, addr: address}, nil
-}
-
-func readFromRepl(ws *websocket.Conn, repl ReplConn) {
-	log.Println("Starting READ from server...")
+	// log.Println("Starting READ from server...")
 	// TODO: needed to set a larger buffer size so that
 	// I could read the metadata from clojure.core :|
 	// This is a hack as anything hardcoded (size) will fail
 	// then the input is larger...
-	scanner := bufio.NewScanner(repl.conn)
+	scanner := bufio.NewScanner(sock)
 	buf := make([]byte, 0, 64*1024)
 	scanner.Buffer(buf, 1024*1024)
 	for scanner.Scan() {
@@ -55,74 +34,67 @@ func readFromRepl(ws *websocket.Conn, repl ReplConn) {
 		if err != nil {
 			return
 		}
+		log.Printf("%s <--[%dB]-- %s\n", wa, len(scanner.Bytes()), ra)
 	}
 }
 
-func writeToRepl(repl ReplConn, ws *websocket.Conn) {
-	log.Println("Starting WRITE to server...")
+func writeToSock(sock net.Conn, ws *websocket.Conn) {
+	wa := ws.RemoteAddr().String()
+	ra := sock.RemoteAddr().String()
 	for {
-		log.Println("about to read message from ws")
-		_, message, err := ws.ReadMessage()
+		_, r, err := ws.NextReader()
 		if err != nil {
-			log.Println("read:", err)
+			log.Printf("error %+v\n", err)
 			break
 		}
-		log.Printf("recv: '%s' with bytes %+v\n", string(message), message)
-		sentBytes, err := fmt.Fprintf(repl.conn, "%s\n",string(message))
+		bytesWritten, err := io.Copy(sock, r)
 		if err != nil {
-			log.Println("prepl write:", err)
+			log.Printf("error %+v\n", err)
 			break
 		}
-		log.Printf("wrote %d bytes to prepl", sentBytes)
+		log.Printf("%s --[%dB]--> %s\n", wa, bytesWritten, ra)
 	}
 }
 
-func connectToRepl(ws *websocket.Conn, port string) {
-	log.Printf("connectToRepl...")
-	repl, err := openReplConn(port)
+func connectToTcpSocket(ws *websocket.Conn, address string) {
+	sock, err := net.Dial("tcp", address)
 	if err != nil {
 		log.Printf("Error %+v\n", err)
 		return
 	}
-	defer func(conn net.Conn) {
-		log.Println("defer close in connectToRepl")
-		err := conn.Close()
-		if err != nil {
-			log.Printf("Error '%+v' when closing repl connection\n", err)
-		}
-	}(repl.conn)
-	go readFromRepl(ws, repl)
-	writeToRepl(repl, ws)
+	defer sock.Close()
+	go readFromSock(ws, sock)
+	writeToSock(sock, ws)
 }
 
-type ReplService struct {
+type TcpProxyService struct {
 	upgrader  websocket.Upgrader
 }
 
-func initializeUpgrader(anyOrigin bool) *ReplService {
+func tcpProxyService(anyOrigin bool) *TcpProxyService {
 	var upgrader = websocket.Upgrader{} // use default options as base
 	if anyOrigin {
 		upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	}
-	return &ReplService{upgrader}
+	return &TcpProxyService{upgrader}
 }
 
-func (s *ReplService) HandlePreplWebsocket(w http.ResponseWriter, r *http.Request) {
+func (s *TcpProxyService) HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	port := vars["port"]
+	address := vars["address"]
 	ws, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
 		return
 	}
 	defer func(ws *websocket.Conn) {
-		log.Println("defer close in HandlePreplWebsocket")
+		log.Println("defer close in HandleWebsocket")
 		err := ws.Close()
 		if err != nil {
 			log.Printf("Error '%+v' when closing websocket\n", err)
 		}
 	}(ws)
-	connectToRepl(ws, port)
+	connectToTcpSocket(ws, address)
 }
 
 func main() {
@@ -133,14 +105,14 @@ func main() {
 	flag.Parse()
 	addr := fmt.Sprintf("localhost:%s", *port)
 
-	replService := initializeUpgrader(*wsAnyOrigin)
+	serivce := tcpProxyService(*wsAnyOrigin)
 
 	fmt.Printf("Serving static files from '%s' on '%s'\n", *serveFrom, addr)
 	fmt.Printf("Allow websocket connections when 'origin' is not '%s': %t\n", addr, *wsAnyOrigin)
-	fmt.Printf("%s/prepl/{port} to establish websocket connection to a prepl instance\n", addr)
+	fmt.Printf("%s/tcp/{address} to establish websocket connection to a remote repl socket\n", addr)
 
 	myRouter := mux.NewRouter()
-	myRouter.HandleFunc("/prepl/{port}", replService.HandlePreplWebsocket)
+	myRouter.HandleFunc("/tcp/{address}", serivce.HandleWebsocket)
 	myRouter.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(*serveFrom))))
 	log.Fatal(http.ListenAndServe(addr, myRouter))
 }
