@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"embed"
 	"flag"
 	"fmt"
 	"io"
@@ -9,35 +10,35 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"embed"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
 
 
-
 func readFromSock(ws *websocket.Conn, sock net.Conn) {
 	wa := ws.RemoteAddr().String()
 	ra := sock.RemoteAddr().String()
 
-	// log.Println("Starting READ from server...")
-	// TODO: needed to set a larger buffer size so that
-	// I could read the metadata from clojure.core :|
-	// This is a hack as anything hardcoded (size) will fail
-	// then the input is larger...
 	scanner := bufio.NewScanner(sock)
-	buf := make([]byte, 0, 64*1024)
-	scanner.Buffer(buf, 1024*1024)
+
 	for scanner.Scan() {
-		log.Printf("Response from server...\n")
-		bytes := scanner.Bytes()
-		// log.Printf("Scanner read as string: %s\n", string(bytes))
-		err := ws.WriteMessage(websocket.TextMessage, bytes)
+		w, err := ws.NextWriter(websocket.TextMessage)
 		if err != nil {
-			return
+			log.Printf("error %+v\n", err)
+			break
 		}
-		log.Printf("%s <--[%dB]-- %s\n", wa, len(scanner.Bytes()), ra)
+		bytesWritten, err := w.Write(scanner.Bytes())
+		if err != nil {
+			log.Printf("error %+v\n", err)
+			break
+		}
+		err = w.Close()
+		if err != nil {
+			log.Printf("error %+v\n", err)
+			break
+		}
+		log.Printf("[prepl:%s]--[%dB]-->[ws:%s]\n", ra, bytesWritten, wa)
 	}
 }
 
@@ -55,7 +56,7 @@ func writeToSock(sock net.Conn, ws *websocket.Conn) {
 			log.Printf("error %+v\n", err)
 			break
 		}
-		log.Printf("%s --[%dB]--> %s\n", wa, bytesWritten, ra)
+		log.Printf("[ws:%s]--[%dB]-->[prepl:%s]\n", wa, bytesWritten, ra)
 	}
 }
 
@@ -124,11 +125,11 @@ func main() {
 	service := tcpProxyService(wsAnyOrigin)
 
 	fmt.Printf("Allow websocket connections when 'origin' is not '%s': %t\n", addr, wsAnyOrigin)
-	fmt.Printf("%s/tcp/{address} to establish websocket connection to a remote (repl) socket\n", addr)
+	fmt.Printf("%s/prepl/{address} to establish websocket connection to a remote (prepl) socket\n", addr)
 
 	muxRouter := mux.NewRouter()
 
-	muxRouter.HandleFunc("/tcp/{address}", service.HandleWebsocket)
+	muxRouter.HandleFunc("/prepl/{address}", service.HandleWebsocket)
 
 	// the content that we serve is embedded in the binary.
 	// this means that no matter where the binary is located, all static dependencies are present

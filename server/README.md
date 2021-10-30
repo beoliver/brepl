@@ -12,7 +12,7 @@ arbitrary front-ends and support websocket repl connections.
 
 ## Websocket PREPL Connections
 
-`ws://localhost:$PORT/prepl/$PREPL_PORT`
+`ws://localhost:$PORT/prepl/$PREPL_ADDR`
 
 ## Develop
 

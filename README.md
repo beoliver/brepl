@@ -28,7 +28,7 @@ greeting
 
 Web browsers don't allow raw sockets. However, we can open up a websocket and connect to a second server that can act as a "proxy".
 
-A small [server](./server) (written in GO) serves this role as well as serving the static html/js/ect for the frontent.
+A small [server](./server) (written in GO) serves this role as well as serving the static html/js/css for the frontent.
 
 ```
 [client]<---websocket--->[server]<---TCP--->[CLOJURE]
@@ -45,7 +45,7 @@ Start the server on your favourite port.
 
 ```bash
 $ cd server
-$ go run main.go -port 8080 -serve-from ./public
+$ go run main.go --port 8080 --root ./public
 ```
 
 You can now go to [http://localhost:8080](http://localhost:8080)!

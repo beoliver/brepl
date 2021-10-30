@@ -5,7 +5,7 @@
 
 (defn websocket!
   [hostname ws-port repl-port]
-  (js/WebSocket. (cl-format nil "ws://~a:~a/tcp/:~a" hostname ws-port repl-port)))
+  (js/WebSocket. (cl-format nil "ws://~a:~a/prepl/:~a" hostname ws-port repl-port)))
 
 (defn socket-write! [sock-name expr] (.send (get @sockets sock-name) expr))
 (defn socket-close! [sock-name] (.close (get @sockets sock-name)))

@@ -19,4 +19,4 @@ dev: vet
 
 build: main.go
 	mkdir -p bin
-	go build -a -installsuffix cgo -o $(binary) $^
+	go build -ldflags "-s -w" -a -installsuffix cgo -o $(binary) $^
