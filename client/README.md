@@ -1,16 +1,12 @@
 
-## Repl
-
-From this directory run
-
-```bash
-clj -M --main cljs.main --compile brepl.core --repl
-```
+# Client
 
 ## Building
 
 ```bash
-clj -M -m cljs.main --optimizations advanced -c brepl.core
+$ make
 ```
 
-Examine `out/main.js` - you can zip it
+## Development
+
+use `cider-jack-in` in emacs.
