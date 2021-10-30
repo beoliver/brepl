@@ -24,8 +24,9 @@ use `make dev`.
 You can also stick html/css/js in a configurable directory (default is the `public` dir in the parent directory).
 
 ```bash
-go run main.go -port 8080 -ws-any-origin -serve-from $PWD/../public
+go run main.go --port 8080 -ws-any-origin --root ./public
 ```
+
 This _should_ be the same as running
 
 ```bash
