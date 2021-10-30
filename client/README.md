@@ -9,4 +9,4 @@ $ make
 
 ## Development
 
-use `cider-jack-in` in emacs.
+use `cider-jack-in-cljs` in emacs.
