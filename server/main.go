@@ -125,11 +125,13 @@ func main() {
 	service := tcpProxyService(wsAnyOrigin)
 
 	fmt.Printf("Allow websocket connections when 'origin' is not '%s': %t\n", addr, wsAnyOrigin)
-	fmt.Printf("%s/prepl/{address} to establish websocket connection to a remote (prepl) socket\n", addr)
+	fmt.Printf("%s/prepl/{address} to establish websocket connection to a remote 'prepl' socket\n", addr)
+	fmt.Printf("%s/nrepl/{address} to establish websocket connection to a remote 'nREPL' socket\n", addr)
 
 	muxRouter := mux.NewRouter()
 
 	muxRouter.HandleFunc("/prepl/{address}", service.HandleWebsocket)
+	muxRouter.HandleFunc("/nrepl/{address}", service.HandleWebsocket)
 
 	// the content that we serve is embedded in the binary.
 	// this means that no matter where the binary is located, all static dependencies are present
