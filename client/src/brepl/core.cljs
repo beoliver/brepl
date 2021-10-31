@@ -10,6 +10,14 @@
 ;;; SOCKET CONNECTOR -----------------------------------------------------
 ;;; HELPERS
 
+(defn connect! [info]
+  (let [ws-addr   (let [{:keys [hostname port]} (:ws info)] (str hostname ":" port))
+        repl-addr (let [{:keys [hostname port]} (:repl info)] (str hostname ":" port))]
+    (if (= "prepl" (get-in info [:repl :type]))
+      (do (repl/connect! ws-addr repl-addr)
+          (browser/connect! ws-addr repl-addr))
+      (nrepl/connect! ws-addr repl-addr))))
+
 (defn status-color [connected? error?]
   (cond connected? (:green @config/config)
         error?     (:red @config/config)
@@ -17,6 +25,8 @@
 
 (defn repl-and-browser-connected? []
   (and @repl/connected? @browser/connected?))
+
+
 
 
 
@@ -62,15 +72,11 @@
           [:input {:type "button"
                    :value "Connect"
                    :on-click (fn [_]
-                               (let [ws-addr   (str "localhost:" @ws-port)
-                                     repl-addr (str "localhost:" @repl-port)]
-                                 (swap! config/config assoc :ws-port ws-port)
-                                 (swap! config/config assoc :repl-port repl-port)
-                                 (swap! config/config assoc :repl-type repl-type)
-                                 (if (= @repl-type "prepl")
-                                   (do (repl/connect! ws-addr repl-addr)
-                                       (browser/connect! ws-addr repl-addr))
-                                   (nrepl/connect! ws-addr repl-addr))))}]])])))
+                               (swap! config/config assoc :ws-port ws-port)
+                               (swap! config/config assoc :repl-port repl-port)
+                               (swap! config/config assoc :repl-type repl-type)
+                               (connect! {:ws {:hostname "localhost" :port @ws-port}
+                                          :repl {:type @repl-type :hostname "localhost" :port @repl-port}}))}]])])))
 
 ;;; MAIN -----------------------------------------------------------------
 
