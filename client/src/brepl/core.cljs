@@ -1,8 +1,8 @@
 (ns ^:figwheel-hooks brepl.core
   (:require [brepl.config :as config]
             [brepl.sockets :as sockets]
-            [brepl.repl :as repl]
-            [brepl.browser :as browser]
+            [brepl.prepl-repl :as prepl]
+            [brepl.prepl-browser :as browser]
             [brepl.components :as components]
             [reagent.core :as r]
             [reagent.dom :as dom]))
@@ -30,7 +30,7 @@
         :else      (:white-2 @config/config)))
 
 (defn repl-and-browser-connected? []
-  (and @repl/connected? @browser/connected?))
+  (and @prepl/connected? @browser/connected?))
 
 
 
@@ -54,7 +54,7 @@
                      :align-items "center"
                      :height "2em"
                      :background-color (:yellow-light @config/config)}}
-       [:span "REPL"] [components/circle (status-color @repl/connected? @repl/error?)] "|"
+       [:span "REPL"] [components/circle (status-color @prepl/connected? @prepl/error?)] "|"
        [:span "NS-BROWSER"] [components/circle (status-color @browser/connected? @browser/error?)] "|"
 
        (if (repl-and-browser-connected?)
@@ -112,12 +112,12 @@
                    :overflow-y "scroll"
                    :background-color (:black-2 @config/config)}}
      [:div
-      [repl/repl-input-component]]
+      [prepl/repl-input-component]]
      [:div {:style {;; :resize "horizontal"
                     :width "100%"
                     :height "calc(100vh-2em)"
                     :background-color (:black-2 @config/config)}}
-      [repl/repl-output-component]]
+      [prepl/repl-output-component]]
      ]
     ]
    ]

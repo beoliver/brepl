@@ -1,4 +1,4 @@
-(ns ^:figwheel-hooks brepl.repl
+(ns ^:figwheel-hooks brepl.prepl-repl
   (:require [brepl.sockets :as ws]
             [brepl.config :as config]
             [cljs.tools.reader.edn :as edn]

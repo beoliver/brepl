@@ -1,6 +1,6 @@
-(ns ^:figwheel-hooks brepl.browser
+(ns ^:figwheel-hooks brepl.prepl-browser
   (:require [brepl.sockets :as ws]
-            [brepl.repl :as repl]
+            [brepl.prepl-repl :as repl]
             [brepl.utils :as utils]
             [brepl.config :as config]
             [cljs.tools.reader.edn :as edn]
