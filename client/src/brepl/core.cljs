@@ -3,28 +3,31 @@
             [brepl.repl :as repl]
             [brepl.nrepl :as nrepl]
             [brepl.browser :as browser]
+            [brepl.components :as components]
             [reagent.core :as r]
             [reagent.dom :as dom]))
 
 ;;; SOCKET CONNECTOR -----------------------------------------------------
+;;; HELPERS
 
-(defn color-circle [color]
-  [:div {:style {:background-color color
-                 :border-radius "50%"
-                 :height "0.8em"
-                 :width "0.8em"
-                 :margin-right "0.2em"
-                 }}])
+(defn status-color [connected? error?]
+  (cond connected? (:green @config/config)
+        error?     (:red @config/config)
+        :else      (:white-2 @config/config)))
 
-(defn port-input-component [port-atom]
-  [:input {:font-family "'JetBrains Mono', monospace"
-           :font-size "1em"
-           :type "text"
-           :placeholder "PORT"
-           :maxLength "5" ; 65535
-           :size "5" ; 65535
-           :value @port-atom
-           :on-change #(reset! port-atom (-> % .-target .-value))}])
+(defn repl-and-browser-connected? []
+  (and @repl/connected? @browser/connected?))
+
+
+
+;;; SOCKET CONNECTOR -----------------------------------------------------
+
+;;; sub components
+
+(defn connected-info [websocket-port repl-type repl-port]
+  [:div "ws://localhost:" websocket-port " -> " repl-type "://localhost:" repl-port])
+
+;;;
 
 (defn socket-connector-component []
   (let [ws-port   (r/atom (str (:ws-port @config/config)))
@@ -37,31 +40,25 @@
                      :align-items "center"
                      :height "2em"
                      :background-color (:yellow-light @config/config)}}
-       ;; one dot for the "repl"
-       [color-circle (cond @repl/connected? (:green @config/config)
-                           @repl/error?     (:red @config/config)
-                           :else            (:white-2 @config/config))]
-       [:span "REPL"]
-       "|"
-       ;; one dot for the "helper"
-       [color-circle (cond @browser/connected? (:green @config/config)
-                           @browser/error?     (:red @config/config)
-                           :else               (:white-2 @config/config))]
-       [:span "NS-BROWSER"]
-       "|"
-       (if (and @repl/connected? @browser/connected?)
-         ;; connected header
-         [:div "ws://localhost:" @ws-port " -> " @repl-type "://localhost:" @repl-port]
-         ;; connect header
+       [:span "REPL"] [components/circle (status-color @repl/connected? @repl/error?)] "|"
+       [:span "NS-BROWSER"] [components/circle (status-color @browser/connected? @browser/error?)] "|"
+
+       (if (repl-and-browser-connected?)
+         [connected-info @ws-port @repl-type @repl-port]
+
          [:div
           [:span "ws://localhost:"
-           [port-input-component ws-port]]
+           [components/port-input {:font-family "'JetBrains Mono', monospace"
+                                   :font-size "1em"} ws-port]]
           [:span " -> "
            [:select {:value @repl-type :on-click (fn [event] (->> event .-target .-value (reset! repl-type)))}
             [:option {:value "nrepl"} "nrepl"]
-            [:option {:value "prepl"} "prepl"]]
+            [:option {:value "nrepl+edn"} "nrepl+edn"]
+            [:option {:value "prepl"} "prepl"]
+            ]
            "://localhost:"
-           [port-input-component repl-port]]
+           [components/port-input {:font-family "'JetBrains Mono', monospace"
+                                   :font-size "1em"} repl-port]]
           [:input {:type "button"
                    :value "Connect"
                    :on-click (fn [_]
