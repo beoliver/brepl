@@ -16,7 +16,7 @@ import (
 )
 
 
-func readFromSock(ws *websocket.Conn, sock net.Conn) {
+func readFromPreplSock(ws *websocket.Conn, sock net.Conn) {
 	wa := ws.RemoteAddr().String()
 	ra := sock.RemoteAddr().String()
 
@@ -42,7 +42,28 @@ func readFromSock(ws *websocket.Conn, sock net.Conn) {
 	}
 }
 
-func writeToSock(sock net.Conn, ws *websocket.Conn) {
+
+func readFromNreplSock(ws *websocket.Conn, sock net.Conn) {
+	wa := ws.RemoteAddr().String()
+	ra := sock.RemoteAddr().String()
+	var bytes = make([]byte, 64*1024)
+	for {
+		bytesRead, err := sock.Read(bytes)
+		if err != nil {
+			log.Printf("error %+v\n", err)
+			break
+		}
+		err = ws.WriteMessage(websocket.TextMessage, bytes[:bytesRead])
+		if err != nil {
+			log.Printf("error %+v\n", err)
+			break
+		}
+		log.Printf("[nREPL:%s]--[%dB]-->[ws:%s]\n", ra, bytesRead, wa)
+	}
+}
+
+
+func writeToPreplSock(sock net.Conn, ws *websocket.Conn) {
 	wa := ws.RemoteAddr().String()
 	ra := sock.RemoteAddr().String()
 	for {
@@ -60,16 +81,46 @@ func writeToSock(sock net.Conn, ws *websocket.Conn) {
 	}
 }
 
-func connectToTcpSocket(ws *websocket.Conn, address string) {
+func writeToNreplSock(sock net.Conn, ws *websocket.Conn) {
+	wa := ws.RemoteAddr().String()
+	ra := sock.RemoteAddr().String()
+	for {
+		_, message, err := ws.ReadMessage()
+		if err != nil {
+			log.Printf("error %+v\n", err)
+			break
+		}
+		bytesWritten, err := sock.Write(message)
+		if err != nil {
+			log.Printf("error %+v\n", err)
+			break
+		}
+		log.Printf("[ws:%s]--[%dB(%s)]-->[nREPL:%s]\n", wa, bytesWritten, message, ra)
+	}
+}
+
+func connectToPreplSocket(ws *websocket.Conn, address string) {
 	sock, err := net.Dial("tcp", address)
 	if err != nil {
 		log.Printf("Error %+v\n", err)
 		return
 	}
 	defer sock.Close()
-	go readFromSock(ws, sock)
-	writeToSock(sock, ws)
+	go readFromPreplSock(ws, sock)
+	writeToPreplSock(sock, ws)
 }
+
+func connectToNreplSocket(ws *websocket.Conn, address string) {
+	sock, err := net.Dial("tcp", address)
+	if err != nil {
+		log.Printf("Error %+v\n", err)
+		return
+	}
+	defer sock.Close()
+	go readFromNreplSock(ws, sock)
+	writeToNreplSock(sock, ws)
+}
+
 
 type TcpProxyService struct {
 	upgrader  websocket.Upgrader
@@ -83,7 +134,7 @@ func tcpProxyService(anyOrigin bool) *TcpProxyService {
 	return &TcpProxyService{upgrader}
 }
 
-func (s *TcpProxyService) HandleWebsocket(w http.ResponseWriter, r *http.Request) {
+func (s *TcpProxyService) HandleNreplWebsocket(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
 	ws, err := s.upgrader.Upgrade(w, r, nil)
@@ -98,7 +149,25 @@ func (s *TcpProxyService) HandleWebsocket(w http.ResponseWriter, r *http.Request
 			log.Printf("Error '%+v' when closing websocket\n", err)
 		}
 	}(ws)
-	connectToTcpSocket(ws, address)
+	connectToNreplSocket(ws, address)
+}
+
+func (s *TcpProxyService) HandlePreplWebsocket(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	address := vars["address"]
+	ws, err := s.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Print("upgrade:", err)
+		return
+	}
+	defer func(ws *websocket.Conn) {
+		log.Println("defer close in HandleWebsocket")
+		err := ws.Close()
+		if err != nil {
+			log.Printf("Error '%+v' when closing websocket\n", err)
+		}
+	}(ws)
+	connectToPreplSocket(ws, address)
 }
 
 // content holds our static web server content.
@@ -130,8 +199,8 @@ func main() {
 
 	muxRouter := mux.NewRouter()
 
-	muxRouter.HandleFunc("/prepl/{address}", service.HandleWebsocket)
-	muxRouter.HandleFunc("/nrepl/{address}", service.HandleWebsocket)
+	muxRouter.HandleFunc("/prepl/{address}", service.HandlePreplWebsocket)
+	muxRouter.HandleFunc("/nrepl/{address}", service.HandleNreplWebsocket)
 
 	// the content that we serve is embedded in the binary.
 	// this means that no matter where the binary is located, all static dependencies are present

@@ -1,6 +1,7 @@
 (ns ^:figwheel-hooks brepl.core
   (:require [brepl.config :as config]
             [brepl.repl :as repl]
+            [brepl.nrepl :as nrepl]
             [brepl.browser :as browser]
             [reagent.core :as r]
             [reagent.dom :as dom]))
@@ -26,8 +27,9 @@
            :on-change #(reset! port-atom (-> % .-target .-value))}])
 
 (defn socket-connector-component []
-  (let [ws-port        (r/atom (str (:ws-port @config/config)))
-        prepl-port     (r/atom (str (:prepl-port @config/config)))]
+  (let [ws-port   (r/atom (str (:ws-port @config/config)))
+        repl-port (r/atom (str (:repl-port @config/config)))
+        repl-type (r/atom (str (:repl-type @config/config)))]
     (fn []
       [:div {:style {:font-family "'JetBrains Mono', monospace"
                      :font-size "0.8em"
@@ -49,25 +51,29 @@
        "|"
        (if (and @repl/connected? @browser/connected?)
          ;; connected header
-         [:div "ws://localhost:" @ws-port " -> localhost:" @prepl-port
-          #_[:input {:type "button"
-                     :value "CLOSE!"
-                     :on-click (fn [_] (repl/close!))}]]
+         [:div "ws://localhost:" @ws-port " -> " @repl-type "://localhost:" @repl-port]
          ;; connect header
          [:div
           [:span "ws://localhost:"
            [port-input-component ws-port]]
-          [:span " -> localhost:"
-           [port-input-component prepl-port]]
+          [:span " -> "
+           [:select {:value @repl-type :on-click (fn [event] (->> event .-target .-value (reset! repl-type)))}
+            [:option {:value "nrepl"} "nrepl"]
+            [:option {:value "prepl"} "prepl"]]
+           "://localhost:"
+           [port-input-component repl-port]]
           [:input {:type "button"
                    :value "Connect"
                    :on-click (fn [_]
-                               (let [conn-info {:ws    {:hostname "localhost" :port @ws-port}
-                                                :prepl {:hostname "localhost" :port @prepl-port}}]
+                               (let [ws-addr   (str "localhost:" @ws-port)
+                                     repl-addr (str "localhost:" @repl-port)]
                                  (swap! config/config assoc :ws-port ws-port)
-                                 (swap! config/config assoc :prepl-port prepl-port)
-                                 (repl/connect! conn-info)
-                                 (browser/connect! conn-info)))}]])])))
+                                 (swap! config/config assoc :repl-port repl-port)
+                                 (swap! config/config assoc :repl-type repl-type)
+                                 (if (= @repl-type "prepl")
+                                   (do (repl/connect! ws-addr repl-addr)
+                                       (browser/connect! ws-addr repl-addr))
+                                   (nrepl/connect! ws-addr repl-addr))))}]])])))
 
 ;;; MAIN -----------------------------------------------------------------
 

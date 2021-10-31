@@ -4,8 +4,8 @@
 (defonce ^:private sockets (atom {}))
 
 (defn websocket!
-  [hostname ws-port repl-port]
-  (js/WebSocket. (cl-format nil "ws://~a:~a/prepl/:~a" hostname ws-port repl-port)))
+  [{:keys [ws repl] :as _connection-info}]
+  (js/WebSocket. (cl-format nil "ws://~a/~a/~a" (:address ws) (:type repl) (:address repl))))
 
 (defn socket-write! [sock-name expr] (.send (get @sockets sock-name) expr))
 (defn socket-close! [sock-name] (.close (get @sockets sock-name)))
@@ -16,10 +16,7 @@
 (defmulti on-socket-error   (fn [ws-name _event] ws-name))
 
 (defn new-named-socket! [ws-name connection-info]
-  (let [socket (websocket! (get-in connection-info [:ws :hostname])
-                           (get-in connection-info [:ws :port])
-                           (get-in connection-info [:prepl :port]))]
-
+  (let [socket (websocket! connection-info)]
     (.addEventListener socket "open"
                        (fn [event]
                          (swap! sockets assoc ws-name socket)

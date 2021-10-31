@@ -10,8 +10,9 @@
 
 ;;; ENTRY POINT
 ;;; JUST CONNECT AND EVERYTHING SHOULD WORK
-(defn connect! [connection-info]
-  (ws/new-named-socket! sock-name connection-info))
+(defn connect! [ws-addr repl-addr]
+  (ws/new-named-socket! sock-name {:ws {:address ws-addr}
+                                   :repl {:address repl-addr :type "prepl"}}))
 
 
 

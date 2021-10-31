@@ -23,8 +23,9 @@
   (->> (cl-format nil "(clojure.core/in-ns '~a)" ns-str)
        (ws/socket-write! sock-name)))
 
-(defn connect! [connection-info]
-  (ws/new-named-socket! sock-name connection-info))
+(defn connect! [ws-addr repl-addr]
+  (ws/new-named-socket! sock-name {:ws {:address ws-addr}
+                                   :repl {:address repl-addr :type "prepl"}}))
 
 (defn close! [] (ws/socket-close! sock-name))
 

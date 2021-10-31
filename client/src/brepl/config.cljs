@@ -5,7 +5,8 @@
 ;;; what things should be "export/imprt" abale?
 ;;; Allow passing of values using query params in the URL
 
-(def ^:private default-config {:prepl-port 8888
+(def ^:private default-config {:repl-port 8888
+                               :repl-type "prepl"
                                :ws-port 8080
                                :ns-re-filter ".*"
                                :ns-re-remove "^brepl"
