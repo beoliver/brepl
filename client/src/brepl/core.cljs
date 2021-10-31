@@ -29,7 +29,7 @@
 (defn socket-connector-component []
   (let [ws-port   (r/atom (str (:ws-port @config/config)))
         repl-port (r/atom (str (:repl-port @config/config)))
-        repl-type (r/atom (str (:repl-type @config/config)))]
+        repl-type (r/atom (:repl-type @config/config))]
     (fn []
       [:div {:style {:font-family "'JetBrains Mono', monospace"
                      :font-size "0.8em"
