@@ -5,7 +5,7 @@
 
 (defn websocket!
   [{:keys [ws repl] :as _connection-info}]
-  (js/WebSocket. (cl-format nil "ws://~a/~a/~a" (:address ws) (:type repl) (:address repl))))
+  (js/WebSocket. (cl-format nil "ws://~a:~a/~a/~a:~a" (:hostname ws) (:port ws) (:type repl) (:hostname repl) (:port repl))))
 
 (defn socket-write! [sock-name expr] (.send (get @sockets sock-name) expr))
 (defn socket-close! [sock-name] (.close (get @sockets sock-name)))

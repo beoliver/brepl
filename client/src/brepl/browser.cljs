@@ -6,15 +6,8 @@
             [cljs.tools.reader.edn :as edn]
             [reagent.core :as r]))
 
-(defonce sock-name :browser-sock)
 
-;;; ENTRY POINT
-;;; JUST CONNECT AND EVERYTHING SHOULD WORK
-(defn connect! [ws-addr repl-addr]
-  (ws/new-named-socket! sock-name {:ws {:address ws-addr}
-                                   :repl {:address repl-addr :type "prepl"}}))
-
-
+(def sock-name :browser/prepl)
 
 (defn close! [] (ws/socket-close! sock-name))
 

@@ -1,7 +1,7 @@
 (ns ^:figwheel-hooks brepl.core
   (:require [brepl.config :as config]
+            [brepl.sockets :as sockets]
             [brepl.repl :as repl]
-            [brepl.nrepl :as nrepl]
             [brepl.browser :as browser]
             [brepl.components :as components]
             [reagent.core :as r]
@@ -11,12 +11,15 @@
 ;;; HELPERS
 
 (defn connect! [info]
-  (let [ws-addr   (let [{:keys [hostname port]} (:ws info)] (str hostname ":" port))
-        repl-addr (let [{:keys [hostname port]} (:repl info)] (str hostname ":" port))]
-    (if (= "prepl" (get-in info [:repl :type]))
-      (do (repl/connect! ws-addr repl-addr)
-          (browser/connect! ws-addr repl-addr))
-      (nrepl/connect! ws-addr repl-addr))))
+  (let [repl-type (get-in info [:repl :type])]
+    ;; `repl-type` is one of "prepl" "nrepl" etc
+    ;; creates:
+    ;;  One socket for the interactive repl
+    ;;  One socket for the browser/navigation interface
+    (sockets/new-named-socket! (keyword :user-repl repl-type) info)
+    (sockets/new-named-socket! (keyword :browser repl-type) info)))
+
+;;; -----------------------------------------------------------------------
 
 (defn status-color [connected? error?]
   (cond connected? (:green @config/config)
@@ -25,8 +28,6 @@
 
 (defn repl-and-browser-connected? []
   (and @repl/connected? @browser/connected?))
-
-
 
 
 
@@ -61,14 +62,12 @@
            [components/port-input {:font-family "'JetBrains Mono', monospace"
                                    :font-size "1em"} ws-port]]
           [:span " -> "
-           [:select {:value @repl-type :on-click (fn [event] (->> event .-target .-value (reset! repl-type)))}
+           [:select {:value @repl-type :on-click #(->> % .-target .-value (reset! repl-type))}
             [:option {:value "nrepl"} "nrepl"]
             [:option {:value "nrepl+edn"} "nrepl+edn"]
-            [:option {:value "prepl"} "prepl"]
-            ]
+            [:option {:value "prepl"} "prepl"]]
            "://localhost:"
-           [components/port-input {:font-family "'JetBrains Mono', monospace"
-                                   :font-size "1em"} repl-port]]
+           [components/port-input {:font-family "'JetBrains Mono', monospace" :font-size "1em"} repl-port]]
           [:input {:type "button"
                    :value "Connect"
                    :on-click (fn [_]

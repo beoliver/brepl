@@ -5,7 +5,7 @@
             [reagent.core :as r]
             [cljs.pprint :refer [cl-format]]))
 
-(defonce sock-name :user-repl)
+(defonce sock-name :user-repl/prepl)
 
 ;;; STATE
 (defonce connected? (r/atom false))
@@ -22,10 +22,6 @@
   [ns-str]
   (->> (cl-format nil "(clojure.core/in-ns '~a)" ns-str)
        (ws/socket-write! sock-name)))
-
-(defn connect! [ws-addr repl-addr]
-  (ws/new-named-socket! sock-name {:ws {:address ws-addr}
-                                   :repl {:address repl-addr :type "prepl"}}))
 
 (defn close! [] (ws/socket-close! sock-name))
 
