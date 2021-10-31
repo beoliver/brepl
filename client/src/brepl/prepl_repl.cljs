@@ -1,5 +1,6 @@
 (ns ^:figwheel-hooks brepl.prepl-repl
   (:require [brepl.sockets :as ws]
+            [brepl.repl :as repl]
             [brepl.config :as config]
             [cljs.tools.reader.edn :as edn]
             [reagent.core :as r]
@@ -8,9 +9,6 @@
 (defonce sock-name :user-repl/prepl)
 
 ;;; STATE
-(defonce connected? (r/atom false))
-(defonce history (r/atom nil))
-(defonce error? (r/atom false))
 (defonce current-namespace (r/atom nil))
 ;;; END OF STATE
 
@@ -27,11 +25,11 @@
 
 (defmethod ws/on-socket-open sock-name
   [_ _]
-  (reset! connected? true)
-  (reset! error? false))
+  (reset! repl/connected? true)
+  (reset! repl/error? false))
 
 (defmethod ws/on-socket-close sock-name
-  [_ _] (reset! connected? false))
+  [_ _] (reset! repl/connected? false))
 
 (defn maybe-replace [old new] (or new old))
 
@@ -39,79 +37,37 @@
   [_ event] (let [data (->> event
                             .-data
                             edn/read-string)]
-              (swap! history conj data)
+              (swap! repl/history conj data)
               (swap! current-namespace maybe-replace (:ns data))))
 
 (defmethod ws/on-socket-error sock-name
   [_ _]
-  (reset! connected? false)
-  (reset! error? true))
+  (reset! repl/connected? false)
+  (reset! repl/error? true))
 
-
-(defn repl-input-component
-  "
-  Lets the user eval the content using `Shift+Enter`
-  "
-  []
-  (let [shift-active (r/atom false)
-        expr         (r/atom "")]
-    (fn []
-      [:div {:content-editable @connected?
-             :on-key-down (fn [event]
-                            (let [k (.-key event)]
-                              (cond (= k "Tab") (.preventDefault event) ;; should also insert white space...
-                                    (= k "Shift")                     (reset! shift-active true)
-                                    (and (= k "Enter") @shift-active) (do (ws/socket-write! sock-name @expr)
-                                                                          ;; avoid spamming the server?
-                                                                          (reset! shift-active false))
-                                    :else                             nil)))
-             :on-key-up (fn [event]
-                          (when (= "Shift" (.-key event))
-                            (reset! shift-active false)))
-             :on-input #(->> % .-target .-innerText (reset! expr))
-             :style {:white-space "pre-wrap" ;; this is vital or newlines and spaces cause errors!!!
-                     ;;:padding "1em 1em"
-                     :width "100%"
-                     :max-height "30vh"
-                     :min-height "30vh"
-                     :overflow-y "auto"
-                     :background-color (if @connected? "#000000" "grey")
-                     :font-family "'JetBrains Mono', monospace"
-                     :font-size "0.8em"
-                     :color (if @connected? "#fafafa" "LightGray")}}])))
 
 ;;; HISTORY ITEMS
 
 (defn ret-exception-component
-  [{:keys [val ns ms form]}]
+  [{:keys [val form]}]
   [:div {:style {:display "flex"}}
    [:div {:style {:padding-right "1em" :color (:red @config/config)}} [:b "E"]]
    [:div {:style {:background-color (:red-light @config/config)}}
     [:span (:cause (edn/read-string val))]
     [:div
      [:span "trace:" val]
-     #_[:span "namespace: " ns]
-     #_[:span "took: " ms "ms"]
-     [:span "input: " form]
-     ]
-    ]]
-  )
+     [:span "input: " form]]]])
 
 (defn ret-component
-  [{:keys [val ns ms form]}]
+  [{:keys [val ms form]}]
   [:div {:style {:display "flex"}}
    [:div {:style {:padding-right "1em" :color (:green @config/config)}} [:b "R"]]
    [:div {:style {:background-color (:green-light @config/config)}}
     [:div
      [:span {:style {:padding-left "1em"
                      :padding-right "1em"}} val]
-     #_[:span "namespace: " ns]
-     #_[:span "took: " ms "ms"]
-     [:span " <-"ms "ms—" [:span {:style {:padding-left "1em"
-                                          :padding-right "1em"}} form]]
-     ]
-    ]])
-
+     [:span " <-" ms "ms—" [:span {:style {:padding-left "1em"
+                                           :padding-right "1em"}} form]]]]])
 
 
 
@@ -136,25 +92,17 @@
   [{:keys [val]}]
   [:div {:style {:background-color (:red @config/config)}}
    [:span [:b "E"] val]
-   [:span "error: " val]
-   ]
-  )
+   [:span "error: " val]])
 
 (defmethod prepl-data-to-component :tap
   [{:keys [val]}]
   [:div {:style {:background-color (:yellow @config/config)}}
    [:span [:b "T"] val]
-   [:span "tap: " val]
-   ]
-  )
+   [:span "tap: " val]])
 
 
-(defn repl-output-component
-  []
-  (into [:div {:style {:height "100%"
-                       :padding "1em 1em"
-                       :font-family "'JetBrains Mono', monospace"
-                       :font-size "0.8em"}}]
-        (map-indexed (fn [i x] ^{:key i} [:div {:style {:height "1.6em"
-                                                        :overflow-x "hidden"}}
-                                          [prepl-data-to-component x]]) @history)))
+(defmethod repl/history-item->component sock-name [data]
+  (prepl-data-to-component data))
+
+(defmethod repl/remote-eval! sock-name [expr]
+  (ws/socket-write! sock-name expr))

@@ -1,7 +1,7 @@
 (ns ^:figwheel-hooks brepl.core
   (:require [brepl.config :as config]
             [brepl.sockets :as sockets]
-            [brepl.prepl-repl :as prepl]
+            [brepl.repl :as repl]
             [brepl.prepl-browser :as browser]
             [brepl.components :as components]
             [reagent.core :as r]
@@ -19,19 +19,23 @@
     ;; creates:
     ;;  One socket for the interactive repl
     ;;  One socket for the browser/navigation interface
-    (sockets/new-named-socket! (keyword :user-repl repl-type) info)
+    (repl/connect! info)
     (sockets/new-named-socket! (keyword :browser repl-type) info)))
 
 ;;; -----------------------------------------------------------------------
 
-(defn status-color [connected? error?]
-  (cond connected? (:green @config/config)
-        error?     (:red @config/config)
-        :else      (:white-2 @config/config)))
+(defn repl-status-color []
+  (cond @repl/connected? (:green @config/config)
+        @repl/error?     (:red @config/config)
+        :else              (:white-2 @config/config)))
+
+(defn browser-status-color []
+  (cond @browser/connected? (:green @config/config)
+        @browser/error?     (:red @config/config)
+        :else                 (:white-2 @config/config)))
 
 (defn repl-and-browser-connected? []
-  (and @prepl/connected? @browser/connected?))
-
+  (and @repl/connected? @browser/connected?))
 
 
 ;;; SOCKET CONNECTOR -----------------------------------------------------
@@ -54,8 +58,8 @@
                      :align-items "center"
                      :height "2em"
                      :background-color (:yellow-light @config/config)}}
-       [:span "REPL"] [components/circle (status-color @prepl/connected? @prepl/error?)] "|"
-       [:span "NS-BROWSER"] [components/circle (status-color @browser/connected? @browser/error?)] "|"
+       [:span "REPL"] [components/circle (repl-status-color)] "|"
+       [:span "NS-BROWSER"] [components/circle (browser-status-color)] "|"
 
        (if (repl-and-browser-connected?)
          [connected-info @ws-port @repl-type @repl-port]
@@ -67,7 +71,7 @@
           [:span " -> "
            [:select {:value @repl-type :on-click #(->> % .-target .-value (reset! repl-type))}
             (->> supported-repl-types
-                 (map (fn [value] ^{:key value}[:option {:value value} value]) ))]
+                 (map (fn [value] ^{:key value}[:option {:value value} value])))]
            "://localhost:"
            [components/port-input {:font-family "'JetBrains Mono', monospace" :font-size "1em"} repl-port]]
           [:input {:type "button"
@@ -112,12 +116,12 @@
                    :overflow-y "scroll"
                    :background-color (:black-2 @config/config)}}
      [:div
-      [prepl/repl-input-component]]
+      [repl/input-component]]
      [:div {:style {;; :resize "horizontal"
                     :width "100%"
                     :height "calc(100vh-2em)"
                     :background-color (:black-2 @config/config)}}
-      [prepl/repl-output-component]]
+      [repl/output-component]]
      ]
     ]
    ]
