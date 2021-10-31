@@ -8,6 +8,9 @@
             [reagent.dom :as dom]))
 
 ;;; SOCKET CONNECTOR -----------------------------------------------------
+
+(def supported-repl-types ["nrepl" "nrepl+edn" "prepl"])
+
 ;;; HELPERS
 
 (defn connect! [info]
@@ -63,9 +66,8 @@
                                    :font-size "1em"} ws-port]]
           [:span " -> "
            [:select {:value @repl-type :on-click #(->> % .-target .-value (reset! repl-type))}
-            [:option {:value "nrepl"} "nrepl"]
-            [:option {:value "nrepl+edn"} "nrepl+edn"]
-            [:option {:value "prepl"} "prepl"]]
+            (->> supported-repl-types
+                 (map (fn [value] ^{:key value}[:option {:value value} value]) ))]
            "://localhost:"
            [components/port-input {:font-family "'JetBrains Mono', monospace" :font-size "1em"} repl-port]]
           [:input {:type "button"
