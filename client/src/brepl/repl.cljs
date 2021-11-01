@@ -2,23 +2,22 @@
   (:require [brepl.sockets :as sockets]
             [reagent.core :as r]))
 
-(def repl-impl-name (r/atom nil))
+(def sock-name (atom nil)) ;; just a normal atom...
 
+(defn connect! [info]
+  (->> (sockets/create! :user-repl info)
+       (reset! sock-name)))
+
+;;;
 
 (def connected? (r/atom false))
 (def error? (r/atom false))
 
 
 (def history (r/atom nil))
-(defmulti remote-eval! (fn [_data] @repl-impl-name))
-(defmulti history-item->component (fn [_data] @repl-impl-name))
+(defmulti remote-eval! (fn [_data] @sock-name))
+(defmulti history-item->component (fn [_data] @sock-name))
 
-
-(defn connect! [info]
-  (let [repl-type (get-in info [:repl :type])
-        k (keyword :user-repl repl-type)]
-    (reset! repl-impl-name k)
-    (sockets/new-named-socket! k info)))
 
 
 

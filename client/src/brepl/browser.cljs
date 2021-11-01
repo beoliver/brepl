@@ -1,3 +1,8 @@
-(ns brepl.browser)
+(ns brepl.browser
+  (:require [brepl.sockets :as sockets]))
 
-(defn yolo [])
+(def sock-name (atom nil))
+
+(defn connect! [info]
+  (->> (sockets/create! :browser info)
+       (reset! sock-name)))

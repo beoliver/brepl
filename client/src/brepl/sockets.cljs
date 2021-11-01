@@ -33,3 +33,7 @@
                          (swap! sockets dissoc ws-name)
                          (on-socket-error ws-name event)))
     ws-name))
+
+(defn create! [socket-prefix connection-info]
+  (let [sock-name (keyword socket-prefix (get-in connection-info [:repl :type]))]
+    (new-named-socket! sock-name connection-info)))
