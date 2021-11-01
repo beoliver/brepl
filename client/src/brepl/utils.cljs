@@ -16,6 +16,7 @@
   (cond (re-find #"^[0-9]*(\.[0-9]+)*$" x) (edn/read-string x)
         (re-find #"^true|false$" x) (edn/read-string x)
         (re-find #"^:" x) (edn/read-string x)
+        (re-find #"^\[" x) (edn/read-string x)
         :else x))
 
 (defn query-param-map [search]

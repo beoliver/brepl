@@ -9,10 +9,6 @@
 
 ;;; SOCKET CONNECTOR -----------------------------------------------------
 
-(def supported-repl-types ["nrepl" "nrepl+edn" "prepl"])
-
-;;; HELPERS
-
 (defn connect! [info]
   (let [repl-type (get-in info [:repl :type])]
     ;; `repl-type` is one of "prepl" "nrepl" etc
@@ -70,7 +66,7 @@
                                    :font-size "1em"} ws-port]]
           [:span " -> "
            [:select {:value @repl-type :on-click #(->> % .-target .-value (reset! repl-type))}
-            (->> supported-repl-types
+            (->> (:supported-repls @config/config)
                  (map (fn [value] ^{:key value}[:option {:value value} value])))]
            "://localhost:"
            [components/port-input {:font-family "'JetBrains Mono', monospace" :font-size "1em"} repl-port]]
