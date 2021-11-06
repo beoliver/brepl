@@ -5,6 +5,8 @@
 (defn encode [data]
   (cond
     (string? data) (cl-format nil "~a:~a" (count data) data)
+    (symbol? data) (let [s (str data)]
+                     (cl-format nil "~a:~a" (count s) s))
     (keyword? data) (let [s (name data)] (cl-format nil "~a:~a" (count s) s))
     (int? data) (cl-format nil "i~ae" data)
     (map? data) (->> data
@@ -24,32 +26,34 @@
 (defn- parse [bencode]
   (let [first-char (.charAt bencode 0)]
     (case first-char
-      "i" (parse-int bencode)
-      "d" (parse-dict bencode)
-      "l" (parse-list bencode)
+      "i"  (parse-int bencode)
+      "d"  (parse-dict bencode)
+      "l"  (parse-list bencode)
       (parse-str bencode))))
 
-(def ^:private bencode-int-re #"^i([0-9]+)e(.*)")
-
 (defn- parse-int [bencode]
-  (let [[_ val remaining] (re-matches bencode-int-re bencode)]
-    [(int val) remaining]))
-
-(def ^:private bencode-str-re #"^([0-9]+):(.*)")
+  (let [end-of-int (.indexOf bencode "e")
+        int-val (int (.slice bencode 1 end-of-int))
+        remaining (.slice bencode (inc end-of-int))]
+    [int-val remaining]))
 
 (defn- parse-str [bencode]
-  (let [[_ str-len str-and-remaining] (re-matches bencode-str-re bencode)
-        i (int str-len)]
-    [(.slice str-and-remaining 0 i) (.slice str-and-remaining i)]))
+  ;; [0-9]+ : .*
+  (let [colon-index (.indexOf bencode ":")
+        str-len (int (.slice bencode 0 colon-index))
+        string-start-index (inc colon-index)
+        string-end-index   (+ str-len string-start-index)
+        string (.slice bencode string-start-index string-end-index)
+        remaining (.slice bencode string-end-index)]
+    [string remaining]))
 
 (defn- parse-dict [bencode]
   (loop [bencode (.slice bencode 1) ; strip the 'd' prefix
          value   (transient {})]    ;
-    (if (= "e" (.charAt bencode 0)) ; closing char for a dict
-      [(persistent! value) (.slice bencode 1)]
-      (let [[k remaining-bencode-temp] (parse bencode)
-            [v remaining-bencode] (parse remaining-bencode-temp)]
-        (recur remaining-bencode (assoc! value (keyword k) v))))))
+    (if (= "e" (.charAt bencode 0)) [(persistent! value) (.slice bencode 1)]
+        (let [[k remaining-bencode-temp] (parse bencode)
+              [v remaining-bencode] (parse remaining-bencode-temp)]
+          (recur remaining-bencode (assoc! value (keyword k) v))))))
 
 (defn- parse-list [bencode]
   (loop [bencode (.slice bencode 1)

@@ -1,10 +1,32 @@
 # _b_**REPL**
-## Explore and interact with clojure in the browser
+
+### bREPL lets your browser connect to **any** clojure application that is running either a [prepl](https://clojuredocs.org/clojure.core.server/io-prepl) or [nREPL](https://nrepl.org/nrepl/index.html) server. No extra Deps required!
+
 ---
 
-bREPL lets you interact with any clojure application that is running a [io-prepl](https://clojuredocs.org/clojure.core.server/io-prepl) socket server.
+## How?
 
-## How does it work?
+Web browsers don't allow raw sockets. However, we can open up a websocket and connect to a second "proxy" [server](./server).
+
+---
+
+## Why?
+
+Browsers are fantastic for experimenting with UX design. Which aspects of the clojure development process could benefit from the ability to explore visually?
+
+---
+
+## nREPL
+
+```
+$ lein repl
+nREPL server started on port 64801 on host 127.0.0.1 - nrepl://127.0.0.1:64801
+...
+```
+
+
+
+## PREPL
 
 By including the following jvm options it is possible to connect to your running repl via a tcp connection.
 ```

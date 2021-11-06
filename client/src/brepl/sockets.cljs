@@ -1,39 +1,24 @@
-(ns ^:figwheel-hooks brepl.sockets
+(ns brepl.sockets
   (:require [cljs.pprint :refer [cl-format]]))
 
-(defonce ^:private sockets (atom {}))
+(defn format-websocket-url [proxy repl-server]
+  (cl-format nil "ws://~a:~a/~a/~a:~a"
+             (or (:hostname proxy) "localhost")
+             (:port proxy)
+             (name (:type repl-server))
+             (or (:hostname repl-server) "localhost")
+             (:port repl-server)))
 
-(defn websocket!
-  [{:keys [ws repl] :as _connection-info}]
-  (js/WebSocket. (cl-format nil "ws://~a:~a/~a/~a:~a" (:hostname ws) (:port ws) (:type repl) (:hostname repl) (:port repl))))
+(defn socket [proxy repl-server {:keys [open error message close] :as _callbacks}]
+  (let [url (format-websocket-url proxy repl-server)
+        _ (js/console.log url)
+        s (js/WebSocket. url)]
+    (.addEventListener s "open" open)
+    (.addEventListener s "error" error)
+    (.addEventListener s "message" message)
+    (.addEventListener s "close" close)
+    s))
 
-(defn socket-write! [sock-name expr] (.send (get @sockets sock-name) expr))
-(defn socket-close! [sock-name] (.close (get @sockets sock-name)))
+(defn write! [socket data] (.send socket data))
 
-(defmulti on-socket-open    (fn [ws-name _event] ws-name))
-(defmulti on-socket-close   (fn [ws-name _event] ws-name))
-(defmulti on-socket-message (fn [ws-name _event] ws-name))
-(defmulti on-socket-error   (fn [ws-name _event] ws-name))
-
-(defn new-named-socket! [ws-name connection-info]
-  (let [socket (websocket! connection-info)]
-    (.addEventListener socket "open"
-                       (fn [event]
-                         (swap! sockets assoc ws-name socket)
-                         (on-socket-open ws-name event)))
-    (.addEventListener socket "close"
-                       (fn [event]
-                         (swap! sockets dissoc ws-name)
-                         (on-socket-close ws-name event)))
-    (.addEventListener socket "message"
-                       (fn [event]
-                         (on-socket-message ws-name event)))
-    (.addEventListener socket "error"
-                       (fn [event]
-                         (swap! sockets dissoc ws-name)
-                         (on-socket-error ws-name event)))
-    ws-name))
-
-(defn create! [socket-prefix connection-info]
-  (let [sock-name (keyword socket-prefix (get-in connection-info [:repl :type]))]
-    (new-named-socket! sock-name connection-info)))
+(defn close! [socket] (.close socket))
