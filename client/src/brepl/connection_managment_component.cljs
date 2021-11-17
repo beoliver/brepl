@@ -1,27 +1,40 @@
 (ns brepl.connection-managment-component
   (:require [brepl.backend :as backend]
-            [brepl.prepl :as prepl]
-            [brepl.nrepl :as nrepl]
+            [brepl.background :as bg]
             [reagent.core :as r]))
 
 ;;; -----------------------------------------------------------------------
 
-(defn status-color [{:keys [open? error?]}]
-  (cond open?  "green"
-        error? "red"
-        :else  "grey"))
+(defn status-color [status]
+  (case status
+    :connecting "yellow"
+    :open       "green"
+    :closing    "blue"
+    :closed     "black"
+    "grey"))
 
 ;;; SOCKET CONNECTOR -----------------------------------------------------
 
-
 (defn manage-active-connection [backend-atom]
-  (let [{:keys [repl]} @backend-atom
-        status @(backend/connection-status repl)]
-    [:div {:style {:background-color (status-color status)}}
-     "CONNECTION"
+  (let [{:keys [repl background]} @backend-atom
+        repl-status @(backend/connection-status repl)
+        background-status (when background @(backend/connection-status background))]
+    [:div
+     [:div {:style {:background-color (status-color repl-status)}} "REPL CONNECTION"]
+     [:div {:style {:background-color (status-color background-status)}} "BACKGROUND CONNECTION"]
+     [:input {:type "button"
+              :value "test"
+              :on-click #(when background
+                           (backend/send background "(+ 1 2 3)"
+                                         (fn [data] (js/console.log "test1" data)))
+                           (bg/eval-clj-file "/test.clj"
+                                             background
+                                             (fn [data] (js/console.log "test2" data))))}]
      [:input {:type "button"
               :value "close"
               :on-click #(do (backend/close repl)
+                             (when background
+                               (backend/close background))
                              (reset! backend-atom nil))}]]))
 
 (defn port-input [port-atom]
@@ -41,43 +54,35 @@
            :value @hostname-atom
            :on-change #(reset! hostname-atom (-> % .-target .-value))}])
 
-
-(defn connect-backend [backend-atom]
-  (let [proxy-hostname (r/atom "127.0.0.1")
-        proxy-port     (r/atom "8080")
-        repl-hostname  (r/atom "127.0.0.1")
-        repl-port      (r/atom "8888")
-        backend-name   (r/atom "prepl")]
+(defn connect-backend [backend-atom backends]
+  (let [proxy-port   (r/atom "8080")
+        repl-port    (r/atom "8888")
+        backend-name (r/atom (first (keys backends)))]
     (fn mounted-connect-backend []
-      (js/console.log "connect-backend (re)rendered")
       [:div
-       "hostname"
-       [hostname-input proxy-hostname]
-       "port"
+       "proxy port"
        [port-input proxy-port]
-       "---->"
        [:select {:default-value @backend-name :on-click #(->> % .-target .-value (reset! backend-name))}
-        (->> ["prepl" "nREPL"]
-             (map (fn [value] ^{:key value}[:option {:value value} value])))]
-       "hostname"
-       [hostname-input repl-hostname]
-       "port"
+        (->> (keys backends) (map (fn [value] ^{:key value}[:option {:value value} value])))]
+       "repl port"
        [port-input repl-port]
        [:input {:type "button"
                 :value "connect"
                 :on-click (fn []
-                            (let [connection-config {:proxy {:hostname @proxy-hostname
-                                                             :port @proxy-port}
-                                                     :repl {:hostname @repl-hostname
-                                                            :port @repl-port}}
-                                  backend (case @backend-name
-                                            "nREPL" (nrepl/nREPL connection-config)
-                                            "prepl" (prepl/prepl connection-config))]
+                            (let [connection-config {:proxy {:hostname "localhost" :port @proxy-port}
+                                                     :repl  {:hostname "localhost" :port @repl-port}}
+                                  backend ((get backends @backend-name) connection-config)]
                               (reset! backend-atom backend)
-                              (backend/connect (:repl backend) {})))}]])))
+                              (backend/connect (:repl backend))
+                              (when (:background backend)
+                                (backend/connect (:background backend)))))}]])))
 
-(defn socket-connector-component [backend-atom]
-  (fn mounted-socket-connector-component []
-    (if @backend-atom
-      [manage-active-connection backend-atom]
-      [connect-backend backend-atom])))
+(defn socket-connector-component
+  ([backend-atom backends]
+   (socket-connector-component {} backend-atom backends))
+  ([style backend-atom backends]
+   (fn mounted-socket-connector-component []
+     [:div {:style style}
+      (if @backend-atom
+        [manage-active-connection backend-atom]
+        [connect-backend backend-atom backends])])))

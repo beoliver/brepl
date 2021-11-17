@@ -15,34 +15,32 @@
   "
   ([repl] (repl-input {} repl))
   ([style repl]
-   (let [shift-active (r/atom false)
-         expr         (r/atom "")]
+   (let [active (r/atom #{})
+         expr   (r/atom "")]
      (fn []
-       [:textarea {:resize "none"
-                   :auto-capitalize "none"
+       [:textarea {:auto-capitalize "none"
                    :auto-complete "off"
                    :auto-correct "off"
                    :spell-check "false"
                    :on-key-down (fn [event]
-                                  #_(js/console.log event)
                                   (let [k (.-key event)]
-                                    (cond (= k "Tab") (do (.preventDefault event)
-                                                          (js/console.log event)
-                                                          (let [n (->> event .-target .-selectionEnd)]
-                                                            (when-let [prefix (first-backwards-prefix (.slice @expr 0 n))]
-                                                              (backend/complete repl prefix))))
-                                          (= k "Shift") (reset! shift-active true)
-                                          (and (= k "Enter") @shift-active) (do (.preventDefault event)
-                                                                                (backend/send repl @expr)
-                                                                                (reset! shift-active false))
-                                          :else nil)))
-                   :on-key-up (fn [event]
-                                #_(js/console.log event)
-                                (when (= "Shift" (.-key event))
-                                  (reset! shift-active false)))
-                   :on-input (fn [event]
-                               #_(js/console.log event)
-                               (->> event .-target .-value (reset! expr)))
+                                    (js/console.log k)
+                                    (cond (and (= k "Tab") (@active "Alt"))
+                                          (do (.preventDefault event)
+                                              (js/console.log event)
+                                              (let [n (->> event .-target .-selectionEnd)]
+                                                (when-let [prefix (first-backwards-prefix (.slice @expr 0 n))]
+                                                  (backend/complete repl prefix))))
+
+                                          (= k "Tab")
+                                          (.preventDefault event)
+
+                                          (and (= k "Enter") (@active "Shift"))
+                                          (do (.preventDefault event) (backend/send repl @expr nil))
+
+                                          :else (swap! active conj k))))
+                   :on-key-up (fn [event] (swap! active disj (.-key event)))
+                   :on-input (fn [event] (->> event .-target .-value (reset! expr)))
                    ;; white-space "pre-wrap" is vital or newlines and spaces cause errors!!!
                    :style (merge {:white-space "pre-wrap"} style)}]))))
 
@@ -51,7 +49,10 @@
   ([style repl]
    (into [:div {:style style}]
          (map-indexed (fn [i {:keys [candidate type]}] ^{:key i}
-                        [:div {:style {:display "flex" :height "1.6em" }}
+                        [:div {:style {:display "flex"
+                                       :background-color "pink"
+                                       :justify-content "space-between"
+                                       :height "1.6em" }}
                          [:div candidate]
                          [:div type]])
                       (->> repl backend/active-completions deref)))))

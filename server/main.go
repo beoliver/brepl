@@ -186,6 +186,7 @@ func main() {
 	flag.StringVar(&root, "root", "", "root directory to serve static files from")
 
 	var wsAnyOrigin bool
+	flag.BoolVar(&wsAnyOrigin, "W", false, "allow connections from different hosts/ports")
 	flag.BoolVar(&wsAnyOrigin, "ws-any-origin", false, "allow connections from different hosts/ports")
 
 	flag.Parse()
