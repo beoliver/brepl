@@ -1,7 +1,10 @@
 default: build
 
+dev: 
+	npm run start
+
 clean:
-	rm -rf target
+	rm -rf build
 
 build:
-	clojure -M -m figwheel.main -O advanced -bo dev
+	npm run build

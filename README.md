@@ -50,13 +50,13 @@ greeting
 
 Web browsers don't allow raw sockets. However, we can open up a websocket and connect to a second server that can act as a "proxy".
 
-A small [server](./server) (written in GO) serves this role as well as serving the static html/js/css for the frontent.
+A small [proxy server](./server) (written in GO) serves this role as well as serving the static html/js/css for the frontent.
 
 ```
-[client]<---websocket--->[server]<---TCP--->[CLOJURE]
-                                                |
-                                                |
-[EMACS/VSCODE]<------------------------------[nREPL]
+[client]<----websocket--->[PROXY]<---TCP--->[CLOJURE/JVM]
+                                            [   nREPL   ]
+                                                  |
+[EMACS/VSCODE]<-----------------------------------|
 ```
 The nice thing about this is that you can open a browser as well as having
 a project open in say, emacs.

@@ -9,7 +9,6 @@ clean:
 
 build:
 	bash -c "cd $(CLIENT); make build"
-	mkdir -p "$(SERVER)/public/cljs-out/"
-	cp -r $(CLIENT)/resources/public/* $(SERVER)/public/
-	cp $(CLIENT)/target/public/cljs-out/dev-main.js $(SERVER)/public/cljs-out/dev-main.js
+	mkdir -p "$(SERVER)/public/"
+	cp -r $(CLIENT)/build/* $(SERVER)/public/	
 	bash -c "cd $(SERVER); make build"
