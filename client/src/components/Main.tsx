@@ -6,21 +6,28 @@ import NamespacePublics from "./NamespacePublics";
 import styled from 'styled-components';
 
 const MainContainerStyle = styled.div`
-    background-color: white;
+    background-color: white;    
     display: flex;
     width: 100%;
+    height: 100vh;
 `
 const LeftColumn = styled.div`
+    font-family: 'Roboto';
     background-color: white;
     min-width: 20em;
     max-width: 30em;
     width: 50%;
+    overflow-x: auto;
+    overflow-y: scroll;
 `
 const RightColumn = styled.div`
-    background-color: orangered;
+    background-color: white;
+    font-family: 'JetBrains Mono';
     min-width: 20em;
     max-width: 40em;
     width: 50%;
+    overflow-x: auto;
+    overflow-y: scroll;    
 `
 
 interface Props { proxyAddr: ProxyAddr, replAddr: ReplAddr }

@@ -1,14 +1,24 @@
 import React, { useEffect, useState } from "react"
 import { Repl, Meta } from "../lib/repl/repl"
 import type { Symbol } from "../lib/repl/clojure"
+import styled from "styled-components";
 
 interface Props { repl: Repl }
 
-const colours = new Map([[0, "pink"], [1, "skyBlue"]])
+const Container = styled.div<{ depricated?: string }>`
+    background-color: ${(props) => props.depricated ? "red" : "#fbfbfb"};
+    padding: 1em 1em;
+`
+const Name = styled.h3`
+    background-color: black;
+    color: #fafafa;
+`
 
-const printableArglists = (arglists: Symbol[][]) : string[] => {
+const colours = new Map([[0, "#fbfbfb"], [1, "#fbfbfb"]])
+
+const printableArglists = (arglists: Symbol[][]): string[] => {
     if (arglists) {
-        return arglists.map((xs) => xs.map(x => x.sym).join(" "))
+        return arglists.map((xs) => `(${xs.map(x => x.sym).join(" ")})`)
     }
     return []
 }
@@ -18,6 +28,7 @@ const NamespacePublics: React.FunctionComponent<Props> = ({ repl }) => {
     useEffect(() => {
         (async () => {
             repl.metaForNsPublics("'clojure.core").then((data) => {
+                data.sort((a, b) => (a.name.sym.localeCompare(b.name.sym)))
                 setInterns(data)
             })
         })()
@@ -26,11 +37,16 @@ const NamespacePublics: React.FunctionComponent<Props> = ({ repl }) => {
     return (
         <div>
             {interns.map((meta, i) =>
-                <div {...{ key: i, style: { background: colours.get(i % 2) } }}>
-                    <h3>{meta.name.sym}</h3>
+                <Container key={i} depricated={meta.deprecated}>
+                    <Name>
+                        {meta.name.sym}
+                    </Name>
+                    <hr />
                     <code>{JSON.stringify(printableArglists(meta.arglists), null, 2)}</code>
-                    <div>{meta.doc}</div>
-                </div>
+                    <section>
+                        <p>{meta.doc}</p>
+                    </section>
+                </Container>
             )}
         </div>
     )
