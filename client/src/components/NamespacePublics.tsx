@@ -10,11 +10,11 @@ const Container = styled.div<{ depricated?: string }>`
     padding: 1em 1em;
 `
 const Name = styled.h3`
-    background-color: black;
-    color: #fafafa;
+    margin-bottom: 0em;    
 `
-
-const colours = new Map([[0, "#fbfbfb"], [1, "#fbfbfb"]])
+const BlueBar = styled.hr`
+    color: blue;
+`
 
 const printableArglists = (arglists: Symbol[][]): string[] => {
     if (arglists) {
@@ -41,8 +41,12 @@ const NamespacePublics: React.FunctionComponent<Props> = ({ repl }) => {
                     <Name>
                         {meta.name.sym}
                     </Name>
-                    <hr />
-                    <code>{JSON.stringify(printableArglists(meta.arglists), null, 2)}</code>
+                    <BlueBar />
+                    <section>
+                        {printableArglists(meta.arglists).map((x, i) => {
+                            return (<p key={i}><code >{x}</code></p>)
+                        })}
+                    </section>
                     <section>
                         <p>{meta.doc}</p>
                     </section>
