@@ -17,7 +17,7 @@ const NamespacePublics: React.FunctionComponent<Props> = ({ repl }) => {
     const [interns, setInterns] = useState<Meta[]>([])
     useEffect(() => {
         (async () => {
-            repl.metaForNsPublics("'clojure.walk").then((data) => {
+            repl.metaForNsPublics("'clojure.core").then((data) => {
                 setInterns(data)
             })
         })()

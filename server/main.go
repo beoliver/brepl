@@ -15,12 +15,13 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-
 func readFromPreplSock(ws *websocket.Conn, sock net.Conn) {
 	wa := ws.RemoteAddr().String()
 	ra := sock.RemoteAddr().String()
 
 	scanner := bufio.NewScanner(sock)
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, 1024*1024)
 
 	for scanner.Scan() {
 		w, err := ws.NextWriter(websocket.TextMessage)
@@ -42,7 +43,6 @@ func readFromPreplSock(ws *websocket.Conn, sock net.Conn) {
 	}
 }
 
-
 func readFromNreplSock(ws *websocket.Conn, sock net.Conn) {
 	wa := ws.RemoteAddr().String()
 	ra := sock.RemoteAddr().String()
@@ -61,7 +61,6 @@ func readFromNreplSock(ws *websocket.Conn, sock net.Conn) {
 		log.Printf("[nREPL:%s]--[%dB]-->[ws:%s]\n", ra, bytesRead, wa)
 	}
 }
-
 
 func writeToPreplSock(sock net.Conn, ws *websocket.Conn) {
 	wa := ws.RemoteAddr().String()
@@ -121,9 +120,8 @@ func connectToNreplSocket(ws *websocket.Conn, address string) {
 	writeToNreplSock(sock, ws)
 }
 
-
 type TcpProxyService struct {
-	upgrader  websocket.Upgrader
+	upgrader websocket.Upgrader
 }
 
 func tcpProxyService(anyOrigin bool) *TcpProxyService {

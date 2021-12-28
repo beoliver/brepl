@@ -3,17 +3,6 @@ import { Repl, NsTreeValue } from "../lib/repl/repl"
 
 interface Props { repl: Repl }
 
-const colours = new Map(
-    [
-        [0, "purple"],
-        [1, "red"],
-        [2, "green"],
-        [3, "blue"],
-        [4, "orange"],
-        [5, "yellow"]
-    ]
-)
-
 const htmlTree = (tree: NsTreeValue, level: number): JSX.Element => {
     return (
         <div>
