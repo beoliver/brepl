@@ -1,4 +1,4 @@
-import React, { ChangeEvent, ChangeEventHandler, useCallback, useEffect, useState } from "react"
+import React, { ChangeEvent, useEffect, useState } from "react"
 import { Repl, NsTreeValue, nsNameTree } from "../lib/repl/repl"
 
 interface Props { repl: Repl }
@@ -57,6 +57,11 @@ const NamespaceTree: React.FunctionComponent<Props> = ({ repl }) => {
             <div>
                 {htmlTree(nsNameTree(namespaces.filter(ns => ns.match(filterRegex.regex))), 0)}
             </div>
+            <button onClick={async (e : any) => {
+                repl.allLoadedNamespaceNames().then((namespaces) => {                    
+                    setNamespaces(namespaces)
+                })
+            }}>Reload Namespace List</button>
         </div>
     )
 }
