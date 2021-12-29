@@ -54,14 +54,16 @@ const NamespaceTree: React.FunctionComponent<Props> = ({ repl }) => {
                     <input type="text" value={filterRegex.display} onChange={handleChange} />
                 </label>
             </form>
-            <div>
-                {htmlTree(nsNameTree(namespaces.filter(ns => ns.match(filterRegex.regex))), 0)}
-            </div>
             <button onClick={async (e : any) => {
                 repl.allLoadedNamespaceNames().then((namespaces) => {                    
                     setNamespaces(namespaces)
                 })
-            }}>Reload Namespace List</button>
+            }}>
+                Reload Namespace List
+            </button>
+            <div>
+                {htmlTree(nsNameTree(namespaces.filter(ns => ns.match(filterRegex.regex))), 0)}
+            </div>
         </div>
     )
 }

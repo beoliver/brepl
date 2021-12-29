@@ -16,16 +16,6 @@ Browsers are fantastic for experimenting with UX design. Which aspects of the cl
 
 ---
 
-## nREPL
-
-```
-$ lein repl
-nREPL server started on port 64801 on host 127.0.0.1 - nrepl://127.0.0.1:64801
-...
-```
-
-
-
 ## PREPL
 
 By including the following jvm options it is possible to connect to your running repl via a tcp connection.
@@ -60,6 +50,15 @@ A small [proxy server](./server) (written in GO) serves this role as well as ser
 ```
 The nice thing about this is that you can open a browser as well as having
 a project open in say, emacs.
+
+## opening a pREPL server using nREPL
+
+```clojure
+$ lein repl
+nREPL server started on port 64801 on host 127.0.0.1 - nrepl://127.0.0.1:64801
+...
+user => (def sockserver (clojure.core.server/start-server {:port 8081 :accept 'clojure.core.server/io-prepl :name "sockserver"}))
+```
 
 ## server
 
