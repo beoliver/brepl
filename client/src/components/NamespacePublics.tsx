@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react"
 import { Repl, Meta } from "../lib/repl/repl"
-import type { Symbol } from "../lib/repl/clojure"
 import styled from "styled-components";
+import { toEDNString } from "edn-data"
 
 interface Props { repl: Repl, ns?: string }
 
@@ -16,8 +16,9 @@ const BlueBar = styled.hr`
     color: blue;
 `
 
-const printableArglists = (arglists: Symbol[][]): string[] => {
+const printableArglists = (arglists: any[][]): string[] => {
     if (arglists) {
+        // console.log(toEDNString(arglists))
         return arglists.map((xs) => `(${xs.map(x => x.sym).join(" ")})`)
     }
     return []
@@ -26,12 +27,14 @@ const printableArglists = (arglists: Symbol[][]): string[] => {
 const NamespacePublics: React.FunctionComponent<Props> = ({ repl, ns }) => {
     const [interns, setInterns] = useState<Meta[]>([])
     useEffect(() => {
-        (async () => {
-            repl.metaForNsPublics("'" + ns).then((data) => {
-                data.sort((a, b) => (a.name.sym.localeCompare(b.name.sym)))
-                setInterns(data)
-            })
-        })()
+        if (ns) {
+            (async () => {
+                repl.metaForNsPublics("'" + ns).then((data) => {
+                    data.sort((a, b) => (a.name.sym.localeCompare(b.name.sym)))
+                    setInterns(data)
+                })
+            })()
+        }
     }, [ns])
 
     return (
@@ -43,9 +46,7 @@ const NamespacePublics: React.FunctionComponent<Props> = ({ repl, ns }) => {
                     </Name>
                     <BlueBar />
                     <section>
-                        {printableArglists(meta.arglists).map((x, i) => {
-                            return (<p key={i}><code >{x}</code></p>)
-                        })}
+                        <p key={i}><code >{meta.arglists}</code></p>                        
                     </section>
                     <section>
                         <p>{meta.doc}</p>
