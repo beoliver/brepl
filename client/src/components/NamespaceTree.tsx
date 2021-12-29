@@ -41,6 +41,7 @@ const NamespaceTree: React.FunctionComponent<Props> = ({ repl }) => {
     useEffect(() => {
         (async () => {
             repl.allLoadedNamespaceNames().then((namespaces) => {
+                namespaces.sort()
                 setNamespaces(namespaces)
             })
         })()
@@ -55,7 +56,8 @@ const NamespaceTree: React.FunctionComponent<Props> = ({ repl }) => {
                 </label>
             </form>
             <button onClick={async (e : any) => {
-                repl.allLoadedNamespaceNames().then((namespaces) => {                    
+                repl.allLoadedNamespaceNames().then((namespaces) => {
+                    namespaces.sort()                  
                     setNamespaces(namespaces)
                 })
             }}>
