@@ -63,6 +63,11 @@ export class Repl {
         console.log(data)
         return data
     }
+    public async metaForNsInterns(ns: string): Promise<Meta[]> {
+        const data = await this.repl.eval<Meta[]>(`(mapv #(update (meta %) :arglists str) (vals (ns-interns ${ns})))`)
+        console.log(data)
+        return data
+    }
 
 }
 
