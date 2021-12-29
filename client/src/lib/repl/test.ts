@@ -1,5 +1,5 @@
 import { Prepl } from "./prepl";
-import { Repl, ednParseOptions } from "./repl";
+import { Repl, ednParseOptions, nsNameTree } from "./repl";
 
 import type { Symbol } from "./clojure";
 
@@ -31,9 +31,8 @@ export const test = async () => {
 
     anyResult = await repl.allLoadedNamespaceNames()
     results.push(anyResult)
-
-    let treeResult = await repl.loadedNamespaceTree();
-    results.push(treeResult)
+    
+    results.push(nsNameTree(anyResult))
 
     console.log(results);
 }

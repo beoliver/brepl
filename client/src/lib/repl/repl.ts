@@ -50,11 +50,6 @@ export class Repl {
         return this.repl.eval<Array<string>>(`(mapv (comp name ns-name) (all-ns))`)
     }
 
-    public async loadedNamespaceTree(): Promise<NsTreeValue> {
-        const namespaces = await this.allLoadedNamespaceNames();
-        return nsNameTree(namespaces)
-    }
-
     public async nsMapKeys(ns: string): Promise<string[]> {
         return this.repl.eval<Array<string>>(`(mapv name (keys (ns-map ${ns})))`)
     }

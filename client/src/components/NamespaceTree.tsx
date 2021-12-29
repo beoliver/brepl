@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react"
-import { Repl, NsTreeValue } from "../lib/repl/repl"
+import React, { ChangeEvent, ChangeEventHandler, useCallback, useEffect, useState } from "react"
+import { Repl, NsTreeValue, nsNameTree } from "../lib/repl/repl"
 
 interface Props { repl: Repl }
 
@@ -28,18 +28,37 @@ const htmlTree = (tree: NsTreeValue, level: number): JSX.Element => {
 }
 
 const NamespaceTree: React.FunctionComponent<Props> = ({ repl }) => {
-    const [namespaceTree, setNamespaceTrees] = useState<NsTreeValue>({ children: {} })
+    const [filterRegex, setFilterRegex] = useState({ regex: new RegExp(""), display: "" })
+    const [namespaces, setNamespaces] = useState<string[]>([])
+
+    const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+        try {
+            const regex = new RegExp("^" + event.target.value)
+            setFilterRegex({ regex, display: event.target.value })
+        } catch (error) { }
+    }
+
     useEffect(() => {
         (async () => {
-            repl.loadedNamespaceTree().then((data) => {
-                setNamespaceTrees(data)
+            repl.allLoadedNamespaceNames().then((namespaces) => {
+                setNamespaces(namespaces)
             })
         })()
     }, [repl])
 
-    return (<div>
-        <div>{htmlTree(namespaceTree, 0)}</div>
-    </div>)
+    return (
+        <div>
+            <form >
+                <label>
+                    ns pattern:
+                    <input type="text" value={filterRegex.display} onChange={handleChange} />
+                </label>
+            </form>
+            <div>
+                {htmlTree(nsNameTree(namespaces.filter(ns => ns.match(filterRegex.regex))), 0)}
+            </div>
+        </div>
+    )
 }
 
 export default NamespaceTree
