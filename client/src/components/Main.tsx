@@ -34,6 +34,8 @@ interface Props { proxyAddr: ProxyAddr, replAddr: ReplAddr }
 
 export const Main: React.FunctionComponent<Props> = ({ proxyAddr, replAddr }) => {
     const [repl, setRepl] = useState<Repl | undefined>()
+    const [ns, setNs] = useState<string>()
+
     useEffect(() => {
         (async () => {
             switch (replAddr.type) {
@@ -52,10 +54,10 @@ export const Main: React.FunctionComponent<Props> = ({ proxyAddr, replAddr }) =>
         return (
             <MainContainerStyle>
                 <LeftColumn>
-                    <NamespaceTree {...{ repl }} />
+                    <NamespaceTree {...{ repl, setNs }} />
                 </LeftColumn>
                 <RightColumn>
-                    <NamespacePublics {...{ repl }} />
+                    <NamespacePublics {...{ repl, ns }} />
                 </RightColumn>
             </MainContainerStyle>
         )

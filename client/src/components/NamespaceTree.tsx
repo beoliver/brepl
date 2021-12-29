@@ -1,9 +1,9 @@
 import React, { ChangeEvent, useEffect, useState } from "react"
 import { Repl, NsTreeValue, nsNameTree } from "../lib/repl/repl"
 
-interface Props { repl: Repl }
+interface Props { repl: Repl, setNs: (ns: string) => void }
 
-const htmlTree = (tree: NsTreeValue, level: number): JSX.Element => {
+const htmlTree = (tree: NsTreeValue, level: number, setNs: (ns: string) => void): JSX.Element => {
     return (
         <div>
             {tree.ns ? <a href="">{tree.ns}</a> : <div></div>}
@@ -11,14 +11,14 @@ const htmlTree = (tree: NsTreeValue, level: number): JSX.Element => {
                 if (Object.keys(v.children).length === 0) {
                     return (
                         <div {... { key: k, style: { background: `rgba(200,200,0,${0.1 * (level + 1)})`, marginLeft: `10px` } }}>
-                            <a href="">{v.ns}</a>
+                            <div><pre onClick={() => v.ns ? setNs(v.ns) : null}>{v.ns}</pre></div>
                         </div>
                     )
                 } else {
                     return (
                         <details {... { key: k, style: { background: `rgba(200,200,0,${0.1 * (level + 1)})`, marginLeft: `10px` } }}>
                             <summary>{k}</summary>
-                            {htmlTree(v, level + 1)}
+                            {htmlTree(v, level + 1, setNs)}
                         </details>
                     )
                 }
@@ -27,7 +27,7 @@ const htmlTree = (tree: NsTreeValue, level: number): JSX.Element => {
     )
 }
 
-const NamespaceTree: React.FunctionComponent<Props> = ({ repl }) => {
+const NamespaceTree: React.FunctionComponent<Props> = ({ repl, setNs }) => {
     const [filterRegex, setFilterRegex] = useState({ regex: new RegExp(""), display: "" })
     const [namespaces, setNamespaces] = useState<string[]>([])
 
@@ -55,16 +55,16 @@ const NamespaceTree: React.FunctionComponent<Props> = ({ repl }) => {
                     <input type="text" value={filterRegex.display} onChange={handleChange} />
                 </label>
             </form>
-            <button onClick={async (e : any) => {
+            <button onClick={async (e: any) => {
                 repl.allLoadedNamespaceNames().then((namespaces) => {
-                    namespaces.sort()                  
+                    namespaces.sort()
                     setNamespaces(namespaces)
                 })
             }}>
                 Reload Namespace List
             </button>
             <div>
-                {htmlTree(nsNameTree(namespaces.filter(ns => ns.match(filterRegex.regex))), 0)}
+                {htmlTree(nsNameTree(namespaces.filter(ns => ns.match(filterRegex.regex))), 0, setNs)}
             </div>
         </div>
     )

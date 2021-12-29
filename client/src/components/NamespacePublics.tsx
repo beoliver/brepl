@@ -3,7 +3,7 @@ import { Repl, Meta } from "../lib/repl/repl"
 import type { Symbol } from "../lib/repl/clojure"
 import styled from "styled-components";
 
-interface Props { repl: Repl }
+interface Props { repl: Repl, ns?: string }
 
 const Container = styled.div<{ depricated?: string }>`
     background-color: ${(props) => props.depricated ? "red" : "#fbfbfb"};
@@ -23,16 +23,16 @@ const printableArglists = (arglists: Symbol[][]): string[] => {
     return []
 }
 
-const NamespacePublics: React.FunctionComponent<Props> = ({ repl }) => {
+const NamespacePublics: React.FunctionComponent<Props> = ({ repl, ns }) => {
     const [interns, setInterns] = useState<Meta[]>([])
     useEffect(() => {
         (async () => {
-            repl.metaForNsPublics("'clojure.core").then((data) => {
+            repl.metaForNsPublics("'" + ns).then((data) => {
                 data.sort((a, b) => (a.name.sym.localeCompare(b.name.sym)))
                 setInterns(data)
             })
         })()
-    }, [repl])
+    }, [ns])
 
     return (
         <div>
