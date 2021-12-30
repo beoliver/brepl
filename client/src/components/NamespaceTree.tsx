@@ -33,9 +33,12 @@ const TreeDetails = styled.details<{ level: number }>`
 const TreeLeaf = styled.div<{ level: number }>`
     font-size: 0.9em;
     overflow-x: hidden;
-    margin-left: ${(props) => props.level === 0 ? '0px' : '10px'};    
+    margin-left: ${(props) => props.level === 0 ? '0px' : '10px'};
+    padding-left   : 1em;
     &:hover {
-        background-color: red;
+        background-color: #1A2421;
+        font-weight: bold;
+        color: #fafafa;
         cursor: pointer;
     }
 `
