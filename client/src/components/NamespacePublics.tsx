@@ -4,9 +4,11 @@ import styled from "styled-components";
 
 interface Props { repl: Repl, ns?: string }
 
-const Container = styled.div<{ depricated?: string }>`
-    background-color: ${(props) => props.depricated ? "red" : "#fbfbfb"};
+const Container = styled.div<{ depricated?: string, private?: boolean }>`
+    background-color: ${(props) => props.depricated ? "red" : (props.private ? "black" : "#fbfbfb") };
+    color: ${(props) => props.depricated ? "black" : (props.private ? "white" : "black") };
     padding: 1em 1em;
+    overflow-x: scroll;
 `
 const Name = styled.h3`
     margin-bottom: 0em;    
@@ -20,27 +22,14 @@ const PrivateBar = styled.hr`
 `
 
 const NamespacePublics: React.FunctionComponent<Props> = ({ repl, ns }) => {
-    const [meta, setMeta] = useState<{ public: Meta[], private: Meta[] }>({ public: [], private: [] })
+    const [interns, setInterns] = useState<Meta[]>([])
     useEffect(() => {
         if (ns) {
             (async () => {
                 const nsSymbol = "'" + ns
-
-                const publics = await repl.metaForNsPublics(nsSymbol);
-                publics.sort((a, b) => (a.name.sym.localeCompare(b.name.sym)))
-                const publicNames = new Set(publics.map((x) => x.name.sym))
-
                 const interns = await repl.metaForNsInterns(nsSymbol);
-                const privates: Meta[] = []
-                interns.forEach((x) => {
-                    if (!publicNames.has(x.name.sym)) {
-                        privates.push(x)
-                    }
-                })
-                privates.sort((a, b) => (a.name.sym.localeCompare(b.name.sym)))
-
-                setMeta({ public: publics, private: privates })
-
+                // interns.sort((a, b) => (a.name.sym.localeCompare(b.name.sym)))
+                setInterns(interns)            
             })()
         }
     }, [ns])
@@ -48,35 +37,13 @@ const NamespacePublics: React.FunctionComponent<Props> = ({ repl, ns }) => {
     return (
         <div>
             <h1>{ns}</h1>
-            <h2>
-                Public
-            </h2>
             <div>
-                {meta.public.map((meta, i) =>
-                    <Container key={i} depricated={meta.deprecated}>
+                {interns.map((meta, i) =>
+                    <Container key={i} depricated={meta.deprecated} private={meta.private}>
                         <Name>
                             {meta.name.sym}
                         </Name>
-                        <PublicBar />
-                        <section>
-                            <p key={i}><code >{meta.arglists}</code></p>
-                        </section>
-                        <section>
-                            <p>{meta.doc}</p>
-                        </section>
-                    </Container>
-                )}
-            </div>
-            <h2>
-                Private
-            </h2>
-            <div>
-                {meta.private.map((meta, i) =>
-                    <Container key={i} depricated={meta.deprecated}>
-                        <Name>
-                            {meta.name.sym}
-                        </Name>
-                        <PrivateBar />
+                        { meta.private ? <PrivateBar /> : <PublicBar /> }
                         <section>
                             <p key={i}><code >{meta.arglists}</code></p>
                         </section>

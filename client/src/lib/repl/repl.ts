@@ -81,6 +81,7 @@ export interface Meta {
     name: Symbol;
     ns: any
     deprecated?: string;
+    private?: boolean;
 }
 
 type NsTree = { [key: string]: NsTreeValue }

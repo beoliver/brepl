@@ -6,7 +6,7 @@ interface Props { repl: Repl, setNs: (ns: string) => void }
 const htmlTree = (tree: NsTreeValue, level: number, setNs: (ns: string) => void): JSX.Element => {
     return (
         <div>
-            {tree.ns ? <a href="">{tree.ns}</a> : <div></div>}
+            {tree.ns ? <div><pre onClick={() => tree.ns ? setNs(tree.ns) : null}>{tree.ns}</pre></div> : <div></div>}
             {Object.entries(tree.children).map(([k, v]) => {
                 if (Object.keys(v.children).length === 0) {
                     return (
