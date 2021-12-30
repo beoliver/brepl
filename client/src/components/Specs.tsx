@@ -1,8 +1,42 @@
 import React, { ChangeEvent, useEffect, useState } from "react"
 import { Repl } from "../lib/repl/repl"
 import type { Symbol } from "../lib/repl/clojure";
+import styled from "styled-components";
 
 interface Props { repl: Repl, ns?: string }
+
+interface SpecProps { repl: Repl, specNs: string, specName: string, display: string }
+
+const Container = styled.div<{}>`    
+    padding: 0em 0em;
+    overflow-x: scroll;
+`
+
+const Details = styled.details<{}>`    
+    padding: 0em 0em;
+    margin: 0em 0em;    
+`
+
+const Spec: React.FunctionComponent<SpecProps> = ({ repl, specNs, specName, display }) => {
+    const [description, setDescription] = useState<any>()
+    const [example, setExample] = useState<string>()
+
+    const handleExample = async () => {
+        repl.specExample(`:${specNs}/${specName}`).then((example) => setExample(example))
+    }
+
+    return (
+        <Container>
+            <Details>
+                <summary>{display}</summary>
+                <section>
+                    <button onClick={(_) => handleExample()}>EXAMPLE</button>
+                    <pre>{example}</pre>
+                </section>
+            </Details>
+        </Container>
+    )
+}
 
 
 const filterEntries = (entries: IterableIterator<[string, string[]]>, keyRegex: RegExp, valRegex: RegExp) => {
@@ -98,22 +132,25 @@ const Specs: React.FunctionComponent<Props> = ({ repl, ns }) => {
             </form>
 
             {
-                sortByNs ? filterEntries(specs.sortedByNs.entries(), nsRegex.regex, nameRegex.regex).map(([k,vals], i) => (
-                    <div key={i}>
-                    <h3>{k}</h3>
-                    <div>
-                        {vals.map((v, i) => <ul key={i}>{v}</ul>)}
-                    </div>
-                </div>
-                )) : 
-                filterEntries(specs.sortedByName.entries(), nameRegex.regex, nsRegex.regex).map(([k,vals], i) => (
-                    <div key={i}>
-                    <h3>{k}</h3>
-                    <div>
-                        {vals.map((v, i) => <ul key={i}>{v}</ul>)}
-                    </div>
-                </div>
-                ))
+                sortByNs
+                    ?
+                    filterEntries(specs.sortedByNs.entries(), nsRegex.regex, nameRegex.regex).map(([k, vals], i) => (
+                        <div key={k}>
+                            <h3>{k}</h3>
+                            <div>
+                                {vals.map((v, i) => <Spec key={i} repl={repl} specNs={k} specName={v} display={v} />)}
+                            </div>
+                        </div>
+                    ))
+                    :
+                    filterEntries(specs.sortedByName.entries(), nameRegex.regex, nsRegex.regex).map(([k, vals], i) => (
+                        <div key={k}>
+                            <h3>{k}</h3>
+                            <div>
+                                {vals.map((v, i) => <Spec key={i} repl={repl} specNs={v} specName={k} display={v} />)}
+                            </div>
+                        </div>
+                    ))
             }
         </div>
     )

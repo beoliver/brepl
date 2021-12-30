@@ -15,10 +15,11 @@ const MainContainerStyle = styled.div`
 const LeftColumn = styled.div`
     font-family: 'Roboto';
     background-color: white;
-    min-width: 20em;
-    max-width: 30em;
+    min-width: 15em;    
+    padding: 1em 1em;
     width: 50%;
-    overflow-x: auto;
+    resize: horizontal;
+    // overflow-x: auto;
     overflow-y: scroll;
 `
 const CenterColumn = styled.div`

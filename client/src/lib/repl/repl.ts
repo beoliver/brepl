@@ -80,6 +80,12 @@ export class Repl {
         return data
     }
 
+    public async specExample(spec : string) {
+        const expr = `(pr-str (clojure.spec.gen.alpha/generate (clojure.spec.alpha/gen (clojure.spec.alpha/get-spec ${spec}))))`
+        const data = await this.repl.eval<string>(expr)        
+        return data
+    }
+
 }
 
 export interface Meta {
