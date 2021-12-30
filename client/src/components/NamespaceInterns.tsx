@@ -60,6 +60,7 @@ const NamespaceIntern: React.FunctionComponent<NamespaceInternProps> = ({ repl, 
 const NamespaceInterns: React.FunctionComponent<Props> = ({ repl, ns }) => {
 
     const [interns, setInterns] = useState<Meta[]>([])
+    const [showPrivate, setShowPrivate] = useState(true)
 
     useEffect(() => {
         if (ns) {
@@ -75,8 +76,16 @@ const NamespaceInterns: React.FunctionComponent<Props> = ({ repl, ns }) => {
     return (
         <div>
             <h3>{ns}</h3>
+            <label>
+                <input
+                    type="checkbox"
+                    checked={showPrivate}
+                    onChange={(_) => setShowPrivate(!showPrivate)}
+                />
+                Include Private vars
+            </label>
             <div>
-                {interns.map((meta, i) =>
+                {interns.filter(x => !x.private || showPrivate).map((meta, i) =>
                     <NamespaceIntern key={`${ns}/${meta.name.sym}`} repl={repl} meta={meta} ns={ns} />
                 )}
             </div>
