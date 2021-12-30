@@ -5,14 +5,15 @@ import type { Symbol } from "../lib/repl/clojure";
 interface Props { repl: Repl, ns?: string }
 
 
-const filterEntries = (entries : IterableIterator<[string, string[]]>, nsRegex :RegExp , nameRegex : RegExp) => {
-    const xs = Array.from(entries).map(([k,v]) => [k, v.filter(ns => ns.match(nsRegex))]) as [string, string[]][]
-    return xs.filter(([name,v]) => name.match(nameRegex) && v.length > 0)    
+const filterEntries = (entries: IterableIterator<[string, string[]]>, keyRegex: RegExp, valRegex: RegExp) => {
+    const xs = Array.from(entries).map(([k, vals]) => [k, vals.filter(v => v.match(valRegex))]) as [string, string[]][]
+    return xs.filter(([k, v]) => k.match(keyRegex) && v.length > 0)
 }
 
 const Specs: React.FunctionComponent<Props> = ({ repl, ns }) => {
 
     const [customNsRegex, setCustomNsRegex] = useState(false)
+    const [sortByNs, setSortByNs] = useState<boolean>(false)
     const [nsRegex, setNsRegex] = useState({ regex: new RegExp(ns || ""), display: ns || "" })
     const [nameRegex, setNameRegex] = useState({ regex: new RegExp(""), display: "" })
 
@@ -37,12 +38,17 @@ const Specs: React.FunctionComponent<Props> = ({ repl, ns }) => {
         } catch (error) { }
     }
 
-    const [specs, setSpecs] = useState<{ specs: Array<string>, mappings: Map<string, string[]> }>({ specs: [], mappings: new Map() })
+    const [specs, setSpecs] = useState<{
+        specs: Array<string>,
+        sortedByName: Map<string, string[]>,
+        sortedByNs: Map<string, string[]>
+    }>({ specs: [], sortedByName: new Map(), sortedByNs: new Map() })
 
     useEffect(() => {
         (async () => {
             repl.allSpecs().then((data) => {
-                const mappings = new Map<string, string[]>()
+                const sortedByName = new Map<string, string[]>()
+                const sortedByNs = new Map<string, string[]>()
                 let ns, name: string
                 for (let i = 0; i < data.length; i++) {
                     if (typeof data[i] !== "string") {
@@ -52,40 +58,63 @@ const Specs: React.FunctionComponent<Props> = ({ repl, ns }) => {
                     if (matchArray && matchArray.groups) {
                         ns = matchArray.groups.ns
                         name = matchArray.groups.name
-                        if (mappings.has(name)) {
-                            mappings.get(name)!.push(ns)
+                        if (sortedByName.has(name)) {
+                            sortedByName.get(name)!.push(ns)
                         } else {
-                            mappings.set(name, [ns])
+                            sortedByName.set(name, [ns])
+                        }
+                        if (sortedByNs.has(ns)) {
+                            sortedByNs.get(ns)!.push(name)
+                        } else {
+                            sortedByNs.set(ns, [name])
                         }
                     }
                 }
                 data.sort()
-                setSpecs({ specs: data as Array<string>, mappings: mappings })
+                setSpecs({ specs: data as Array<string>, sortedByName: sortedByName, sortedByNs: sortedByNs })
             })
         })()
     }, [repl])
 
     return (
         <div>
+            <label>
+                <input
+                    type="checkbox"
+                    checked={sortByNs}
+                    onChange={(_) => setSortByNs(!sortByNs)}
+                />
+                Group By Namespace
+            </label>
             <form >
                 <label>
                     ns pattern:
                     <input type="text" value={nsRegex.display} onChange={handleNsRegexChange} />
                 </label>
                 <label>
-                    name pattern:
+                    spec pattern:
                     <input type="text" value={nameRegex.display} onChange={handleNameRegexChange} />
                 </label>
             </form>
-            {filterEntries(specs.mappings.entries(), nsRegex.regex, nameRegex.regex).map(([name, namespaces], i) =>
-            (
-                <div key={i}>
-                    <h3>{name}</h3>
+
+            {
+                sortByNs ? filterEntries(specs.sortedByNs.entries(), nsRegex.regex, nameRegex.regex).map(([k,vals], i) => (
+                    <div key={i}>
+                    <h3>{k}</h3>
                     <div>
-                        {namespaces.filter((ns) => ns.match(nsRegex.regex)).map((x, i) => <ul key={i}>{x}</ul>)}
+                        {vals.map((v, i) => <ul key={i}>{v}</ul>)}
                     </div>
                 </div>
-            ))}
+                )) : 
+                filterEntries(specs.sortedByName.entries(), nameRegex.regex, nsRegex.regex).map(([k,vals], i) => (
+                    <div key={i}>
+                    <h3>{k}</h3>
+                    <div>
+                        {vals.map((v, i) => <ul key={i}>{v}</ul>)}
+                    </div>
+                </div>
+                ))
+            }
         </div>
     )
 }
