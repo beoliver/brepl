@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { FormEvent, useCallback, useEffect, useState } from "react"
 import { Prepl } from "../lib/repl/prepl"
 import { Repl, ednParseOptions, ProxyAddr, ReplAddr } from "../lib/repl/repl"
 import NamespaceTree from "./NamespaceTree";
@@ -30,25 +30,27 @@ const RightColumn = styled.div`
     overflow-y: scroll;    
 `
 
-interface Props { proxyAddr: ProxyAddr, replAddr: ReplAddr }
+interface Props { }
 
-export const Main: React.FunctionComponent<Props> = ({ proxyAddr, replAddr }) => {
+export const Main: React.FunctionComponent<Props> = () => {
+    const [proxyAddr, setProxyAddr] = useState<string>("8888")
+    const [preplAddr, setPreplAddr] = useState<string>("8081")
     const [repl, setRepl] = useState<Repl | undefined>()
     const [ns, setNs] = useState<string>()
 
-    useEffect(() => {
-        (async () => {
-            switch (replAddr.type) {
-                case "prepl": {
-                    const repl = new Repl(new Prepl(proxyAddr, replAddr, ednParseOptions))
-                    return repl.connect().then((_) => {
-                        setRepl(repl)
-                    })
-                }
-                default: new Error("bad repl type")
-            }
-        })()
-    }, [])
+    const connect = useCallback((event : FormEvent<HTMLFormElement>) => {
+        event.preventDefault()
+        if (proxyAddr && preplAddr) {
+            (async () => {                
+                const repl = new Repl(new Prepl({ port: proxyAddr }, { port: preplAddr }, ednParseOptions))
+                console.log(repl)
+                return repl.connect().then((_) => {
+                    console.log(repl)
+                    setRepl(repl)
+                })
+            })()
+        }
+    }, [repl, proxyAddr, preplAddr])
 
     if (repl !== undefined) {
         return (
@@ -62,7 +64,19 @@ export const Main: React.FunctionComponent<Props> = ({ proxyAddr, replAddr }) =>
             </MainContainerStyle>
         )
     } else {
-        return <></>
+        return <div>
+            <form onSubmit={(data) => {connect(data)}}>
+                <label>
+                    Proxy Port:
+                    <input type="text" value={proxyAddr} onChange={(e) => { setProxyAddr(e.target.value) }} />
+                </label>
+                <label>
+                    Prepl Port:
+                    <input type="text" value={preplAddr} onChange={(e) => { setPreplAddr(e.target.value) }} />
+                </label>
+                <input type="submit" value="Connect" />
+            </form>
+        </div>
     }
 
 }
