@@ -40,7 +40,9 @@ export class Prepl implements ReplImpl {
 
         this.socket.onmessage = (ev: MessageEvent<string>) => {
             const edn = parseEDNString(ev.data, this.parseOptions) as PreplResult<any>
-            // console.log(edn)
+            if (edn.tag === "out") {
+                console.log("IO:", edn.val)
+            }
             if (edn.tag === "ret") {
                 if (edn.exception) {
                     console.warn("EXCEPTION")

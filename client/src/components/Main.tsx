@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react"
 import { Prepl } from "../lib/repl/prepl"
 import { Repl, ednParseOptions, ProxyAddr, ReplAddr } from "../lib/repl/repl"
 import NamespaceTree from "./NamespaceTree";
-import NamespacePublics from "./NamespacePublics";
+import NamespacePublics from "./NamespaceInterns";
 import styled from 'styled-components';
 
 const MainContainerStyle = styled.div`

@@ -68,6 +68,11 @@ export class Repl {
         console.log(data)
         return data
     }
+    public async sourceFor(ns: string, name : string): Promise<string> {
+        const expr = `(clojure.repl/source-fn '${ns}/${name})`        
+        const data = await this.repl.eval<string>(expr)        
+        return data
+    }
 
 }
 
