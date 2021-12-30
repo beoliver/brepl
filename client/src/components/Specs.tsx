@@ -10,15 +10,23 @@ const filterEntries = (entries : IterableIterator<[string, string[]]>, nsRegex :
     return xs.filter(([name,v]) => name.match(nameRegex) && v.length > 0)    
 }
 
-const Specs: React.FunctionComponent<Props> = ({ repl }) => {
+const Specs: React.FunctionComponent<Props> = ({ repl, ns }) => {
 
-    const [nsRegex, setNsRegex] = useState({ regex: new RegExp(""), display: "" })
+    const [customNsRegex, setCustomNsRegex] = useState(false)
+    const [nsRegex, setNsRegex] = useState({ regex: new RegExp(ns || ""), display: ns || "" })
     const [nameRegex, setNameRegex] = useState({ regex: new RegExp(""), display: "" })
+
+    useEffect(() => {
+        if (ns && !customNsRegex) {
+            setNsRegex({ regex: new RegExp(ns), display: ns })
+        }
+    }, [ns])
 
     const handleNsRegexChange = (event: ChangeEvent<HTMLInputElement>) => {
         try {
             const regex = new RegExp("^" + event.target.value)
             setNsRegex({ regex, display: event.target.value })
+            setCustomNsRegex(true)
         } catch (error) { }
     }
 
