@@ -76,7 +76,7 @@ const NamespaceInterns: React.FunctionComponent<Props> = ({ repl, ns }) => {
             <h1>{ns}</h1>
             <div>
                 {interns.map((meta, i) =>
-                    <NamespaceIntern repl={repl} meta={meta} ns={ns} />
+                    <NamespaceIntern key={`${ns}/${meta.name.sym}`} repl={repl} meta={meta} ns={ns} />
                 )}
             </div>
         </div>
