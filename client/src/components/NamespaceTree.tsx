@@ -100,7 +100,7 @@ const NamespaceTree: React.FunctionComponent<Props> = ({ repl, setNs }) => {
                             setNamespaces(namespaces)
                         })
                     }}>
-                    Reload Namespace List
+                    Refresh Namespace List
                 </ReloadNamespaceListButton>
             </Controls>
             {htmlTree(nsNameTree(namespaces.filter(ns => ns.match(filterRegex.regex))), 0, setNs)}

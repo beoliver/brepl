@@ -5,10 +5,11 @@ import styled from "styled-components";
 interface Props { repl: Repl, ns?: string }
 
 const Container = styled.div<{ depricated?: string, private?: boolean }>`
-    background-color: ${(props) => props.depricated ? "red" : (props.private ? "black" : "#fbfbfb")};
+    background-color: ${(props) => props.depricated ? "red" : (props.private ? "#1A2421" : "#fbfbfb")};
     color: ${(props) => props.depricated ? "black" : (props.private ? "white" : "black")};
     padding: 1em 1em;
     overflow-x: scroll;
+    font-size: 0.9em;
 `
 const Name = styled.h3`
     margin-bottom: 0em;    
@@ -16,7 +17,6 @@ const Name = styled.h3`
 const PublicBar = styled.hr`
     color: blue;
 `
-
 const PrivateBar = styled.hr`
     color: white;
 `
@@ -74,7 +74,7 @@ const NamespaceInterns: React.FunctionComponent<Props> = ({ repl, ns }) => {
 
     return (
         <div>
-            <h1>{ns}</h1>
+            <h3>{ns}</h3>
             <div>
                 {interns.map((meta, i) =>
                     <NamespaceIntern key={`${ns}/${meta.name.sym}`} repl={repl} meta={meta} ns={ns} />
