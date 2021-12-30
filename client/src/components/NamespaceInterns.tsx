@@ -66,6 +66,7 @@ const NamespaceInterns: React.FunctionComponent<Props> = ({ repl, ns }) => {
             (async () => {
                 const nsSymbol = "'" + ns
                 const interns = await repl.metaForNsInterns(nsSymbol);
+                interns.sort((a,b) => (a.line || 0) - (b.line || 0))
                 setInterns(interns)
             })()
         }
