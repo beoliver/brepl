@@ -74,6 +74,12 @@ export class Repl {
         return data
     }
 
+    public async allSpecs() {
+        const expr = `(keys (clojure.spec.alpha/registry))`
+        const data = await this.repl.eval<Array<string|Symbol>>(expr)        
+        return data
+    }
+
 }
 
 export interface Meta {

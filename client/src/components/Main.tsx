@@ -3,6 +3,7 @@ import { Prepl } from "../lib/repl/prepl"
 import { Repl, ednParseOptions, ProxyAddr, ReplAddr } from "../lib/repl/repl"
 import NamespaceTree from "./NamespaceTree";
 import NamespacePublics from "./NamespaceInterns";
+import Specs from "./Specs";
 import styled from 'styled-components';
 
 const MainContainerStyle = styled.div`
@@ -20,8 +21,17 @@ const LeftColumn = styled.div`
     overflow-x: auto;
     overflow-y: scroll;
 `
-const RightColumn = styled.div`
+const CenterColumn = styled.div`
     background-color: white;
+    font-family: 'JetBrains Mono';
+    min-width: 20em;
+    max-width: 40em;
+    width: 50%;
+    overflow-x: auto;
+    overflow-y: scroll;    
+`
+const RightColumn = styled.div`
+    background-color: pink;
     font-family: 'JetBrains Mono';
     min-width: 20em;
     max-width: 40em;
@@ -58,8 +68,11 @@ export const Main: React.FunctionComponent<Props> = () => {
                 <LeftColumn>
                     <NamespaceTree {...{ repl, setNs }} />
                 </LeftColumn>
-                <RightColumn>
+                <CenterColumn>
                     <NamespacePublics {...{ repl, ns }} />
+                </CenterColumn>
+                <RightColumn>
+                    <Specs {... { repl, ns }} />
                 </RightColumn>
             </MainContainerStyle>
         )
