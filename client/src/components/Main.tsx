@@ -46,7 +46,7 @@ export const Main: React.FunctionComponent<Props> = () => {
     const [repl, setRepl] = useState<Repl | undefined>()
     const [ns, setNs] = useState<string>()
 
-    const setInNs = useCallback((ns : string) => {
+    const setInNs = useCallback((ns: string) => {
         (async () => {
             const nsStr = "'" + ns
             console.log(nsStr)
@@ -55,10 +55,10 @@ export const Main: React.FunctionComponent<Props> = () => {
         })()
     }, [repl, setNs])
 
-    const connect = useCallback((event : FormEvent<HTMLFormElement>) => {
+    const connect = useCallback((event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         if (proxyAddr && preplAddr) {
-            (async () => {                
+            (async () => {
                 const repl = new Repl(new Prepl({ port: proxyAddr }, { port: preplAddr }, ednParseOptions))
                 console.log(repl)
                 return repl.connect().then((_) => {
@@ -73,7 +73,7 @@ export const Main: React.FunctionComponent<Props> = () => {
         return (
             <MainContainerStyle>
                 <LeftColumn>
-                    <NamespaceTree {...{ repl, setNs : setInNs }} />
+                    <NamespaceTree {...{ repl, setNs: setInNs }} />
                 </LeftColumn>
                 <CenterColumn>
                     <NamespacePublics {...{ repl, ns }} />
@@ -84,19 +84,44 @@ export const Main: React.FunctionComponent<Props> = () => {
             </MainContainerStyle>
         )
     } else {
-        return <div>
-            <form onSubmit={(data) => {connect(data)}}>
-                <label>
-                    Proxy Port:
-                    <input type="text" value={proxyAddr} onChange={(e) => { setProxyAddr(e.target.value) }} />
-                </label>
-                <label>
-                    Prepl Port:
-                    <input type="text" value={preplAddr} onChange={(e) => { setPreplAddr(e.target.value) }} />
-                </label>
-                <input type="submit" value="Connect" />
-            </form>
-        </div>
+        return (
+            <Connect>
+                <FlexForm onSubmit={(data) => { connect(data) }}>
+                    <div>
+                        <span>ws://localhost:</span>
+                        <input
+                            size={5}
+                            style={{ boxSizing: "border-box", fontFamily: "JetBrains Mono" }}
+                            type="text"
+                            value={proxyAddr}
+                            onChange={(e) => { setProxyAddr(e.target.value) }} />
+                        <span>/prepl/localhost:</span>
+                        <input
+                            size={5}
+                            style={{ boxSizing: "border-box", fontFamily: "JetBrains Mono" }}
+                            type="text"
+                            value={preplAddr}
+                            onChange={(e) => { setPreplAddr(e.target.value) }} />
+                    </div>
+                    <input style={{ margin: "1em", padding: "0.5em 0.5em", fontFamily: "JetBrains Mono" }} type="submit" value="Connect" />
+                </FlexForm>
+            </Connect>
+        )
     }
-
 }
+
+const Connect = styled.div`
+    background-color: #fafafa;
+    font-family: "Jetbrains Mono";
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh
+`
+const FlexForm = styled.form`
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    
+`
