@@ -43,11 +43,12 @@ const NamespaceIntern: React.FunctionComponent<NamespaceInternProps> = ({ repl, 
             <Name>
                 {meta.name.sym}
             </Name>
-            { meta.protocol ? <p>{meta.protocol.tag}</p> : <p></p>}
+            {meta.protocol ? <p>{meta.protocol.tag}</p> : <p></p>}
+            <p style={{ fontSize: '0.9em' }}>{meta.file}</p>
             {meta.private ? <PrivateBar /> : <PublicBar />}
-            <section>
+            {meta.file ? <section>
                 {showSource ? <div><button onClick={(_) => setShowSource(false)}>Hide</button><pre>{source}</pre></div> : <button onClick={(_) => handleFetchSource()}>Source</button>}
-            </section>
+            </section> : <div></div>}
             <section>
                 <p><code>{meta.arglists}</code></p>
             </section>
@@ -68,7 +69,7 @@ const NamespaceInterns: React.FunctionComponent<Props> = ({ repl, ns }) => {
             (async () => {
                 const nsSymbol = "'" + ns
                 const interns = await repl.metaForNsInterns(nsSymbol);
-                interns.sort((a,b) => (a.line || 0) - (b.line || 0))
+                interns.sort((a, b) => (a.line || 0) - (b.line || 0))
                 setInterns(interns)
             })()
         }
