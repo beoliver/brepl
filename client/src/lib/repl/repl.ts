@@ -86,6 +86,18 @@ export class Repl {
         return data
     }
 
+    public async multiMethodDispatchKeys (ns: string, name: string ) {
+        const expr = `(mapv pr-str (clojure.core/keys (clojure.core/methods ${ns}/${name})))`
+        const data = await this.repl.eval<string[]>(expr)
+        return data
+    }
+
+    public async inNs (ns: string) {
+        const expr = `(in-ns ${ns})`
+        const data = await this.repl.eval<any>(expr)
+        return data
+    }
+
 }
 
 export interface Meta {

@@ -46,6 +46,15 @@ export const Main: React.FunctionComponent<Props> = () => {
     const [repl, setRepl] = useState<Repl | undefined>()
     const [ns, setNs] = useState<string>()
 
+    const setInNs = useCallback((ns : string) => {
+        (async () => {
+            const nsStr = "'" + ns
+            console.log(nsStr)
+            await repl!.inNs(nsStr)
+            setNs(ns)
+        })()
+    }, [repl, setNs])
+
     const connect = useCallback((event : FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         if (proxyAddr && preplAddr) {
@@ -64,7 +73,7 @@ export const Main: React.FunctionComponent<Props> = () => {
         return (
             <MainContainerStyle>
                 <LeftColumn>
-                    <NamespaceTree {...{ repl, setNs }} />
+                    <NamespaceTree {...{ repl, setNs : setInNs }} />
                 </LeftColumn>
                 <CenterColumn>
                     <NamespacePublics {...{ repl, ns }} />

@@ -27,17 +27,42 @@ interface NamespaceInternProps {
     meta: Meta
 }
 
+const extractHeadPosition = (s: string) => {
+    const result = s.match(/^\((?<head>[^\s]+)/)
+    if (result && result.groups) {
+        return result.groups.head
+    }
+}
+
 const NamespaceIntern: React.FunctionComponent<NamespaceInternProps> = ({ repl, ns, meta }) => {
-    const [source, setSource] = useState<string>()
+    const [source, setSource] = useState<{source : string, head : string}>()
     const [showSource, setShowSource] = useState<boolean>(false)
+    const [dispatches, setDispatches] = useState<string[]>([])
     const handleFetchSource = useCallback(() => {
         (async () => {
             setShowSource(true)
             if (!source) {
-                repl.sourceFor(ns!, meta.name.sym).then((code) => { setSource(code) })
+                const source = await repl.sourceFor(ns!, meta.name.sym)
+                const head = extractHeadPosition(source)
+                setSource({source : source, head : head || ""})
             }
         })()
     }, [repl, ns, meta, setShowSource])
+    useEffect(() => {
+        if (source && source.head) {
+            switch (source.head) {
+                case "defmulti" : {
+                    (async () => {                        
+                        const dispatches = await repl.multiMethodDispatchKeys(ns!, meta.name.sym)
+                        setDispatches(dispatches)                        
+                    })()
+                    break;
+                };
+                default : {                
+                }
+            }
+        }
+    }, [source])
     return (
         <Container key={meta.name.sym} depricated={meta.deprecated} private={meta.private}>
             <Name>
@@ -45,9 +70,21 @@ const NamespaceIntern: React.FunctionComponent<NamespaceInternProps> = ({ repl, 
             </Name>
             {meta.protocol ? <p>{meta.protocol.tag}</p> : <p></p>}
             <p style={{ fontSize: '0.9em' }}>{meta.file}</p>
-            {meta.private ? <PrivateBar /> : <PublicBar />}
+            {meta.private ? <PrivateBar /> : <PublicBar />}            
             {meta.file ? <section>
-                {showSource ? <div><button onClick={(_) => setShowSource(false)}>Hide</button><pre>{source}</pre></div> : <button onClick={(_) => handleFetchSource()}>Source</button>}
+                {
+                    showSource ?
+                        (
+                            <div>
+                                <button onClick={(_) => setShowSource(false)}>Hide</button>
+                                <pre>{source?.head}</pre>
+                                <pre>{source?.source}</pre>
+                                {dispatches.map((s,i) => (<div key={i}><code>{s}</code></div>))}
+                            </div>
+                        )
+                        :
+                        <button onClick={(_) => handleFetchSource()}>Source</button>
+                }
             </section> : <div></div>}
             <section>
                 <p><code>{meta.arglists}</code></p>
