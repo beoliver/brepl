@@ -24,7 +24,8 @@ const ReloadNamespaceListButton = styled.button`
 `
 
 const TreeDetails = styled.details<{ level: number }>`
-    margin-left: ${(props) => props.level === 0 ? '0px' : '10px'};    
+    margin-left: ${(props) => props.level === 0 ? '0px' : '10px'};
+    border: none;  
     &:hover {
         background-color: ${(props) => `rgba(200,200,0,${0.1 * (props.level + 1)})`};
     }
@@ -46,19 +47,19 @@ const TreeLeaf = styled.div<{ level: number }>`
 const htmlTree = (tree: NsTreeValue, level: number, setNs: (ns: string) => void): JSX.Element => {
     return (
         <div>
-            {tree.ns ? <TreeLeaf level={level} onClick={() => tree.ns ? setNs(tree.ns) : null}>
-                <code>{tree.ns}</code></TreeLeaf> : <div></div>}
+            {tree.ns ? <TreeLeaf level={level} onClick={() => tree.ns ? setNs(tree.ns.ns) : null}>
+                <span title={tree.ns.ns}><code>{tree.ns.segment}</code></span></TreeLeaf> : <div></div>}
             {Object.entries(tree.children).map(([k, v]) => {
                 if (Object.keys(v.children).length === 0) {
                     return (
-                        <TreeLeaf key={k} level={level} onClick={() => v.ns ? setNs(v.ns) : null}>
-                            <code>{v.ns}</code>
+                        <TreeLeaf key={k} level={level} onClick={() => v.ns ? setNs(v.ns.ns) : null}>
+                            <span title={v.ns!.ns}><code>{v.ns!.segment}</code></span>
                         </TreeLeaf>
                     )
                 } else {
                     return (
                         <TreeDetails key={k} level={level}>
-                            <summary>{k}</summary>
+                            <summary style={{color: 'blue', outline: 'none'}}>{k}</summary>
                             {htmlTree(v, level + 1, setNs)}
                         </TreeDetails>
                     )

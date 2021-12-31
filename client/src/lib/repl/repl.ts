@@ -103,7 +103,7 @@ export interface Meta {
 }
 
 type NsTree = { [key: string]: NsTreeValue }
-export type NsTreeValue = { ns?: string, children: NsTree }
+export type NsTreeValue = { ns?: { ns : string, segment : string }, children: NsTree }
 
 export const nsNameTree = (namespaces: string[]): NsTreeValue => {
     // TODO - this is too janky!
@@ -119,14 +119,14 @@ export const nsNameTree = (namespaces: string[]): NsTreeValue => {
             if (!tree[segment]) {
                 if (isLastSegmentinNamespace) {
                     // console.log(ns)
-                    tree[segment] = { ns, children: {} }
+                    tree[segment] = { ns : { ns , segment }, children: {} }
                 } else {
                     tree[segment] = { children: {} }
                 }
             } else {
                 if (isLastSegmentinNamespace) {
                     // console.log(ns)
-                    tree[segment].ns = ns
+                    tree[segment].ns = { ns, segment }
                 }
             }
             tree = tree[segment].children!
