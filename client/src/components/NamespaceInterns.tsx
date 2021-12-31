@@ -35,30 +35,39 @@ const extractHeadPosition = (s: string) => {
 }
 
 const NamespaceIntern: React.FunctionComponent<NamespaceInternProps> = ({ repl, ns, meta }) => {
-    const [source, setSource] = useState<{source : string, head : string}>()
+    const [source, setSource] = useState<{ source: string, head: string }>()
     const [showSource, setShowSource] = useState<boolean>(false)
-    const [dispatches, setDispatches] = useState<string[]>([])
+    const [dispatches, setDispatches] = useState<[string, string][]>([])
     const handleFetchSource = useCallback(() => {
         (async () => {
             setShowSource(true)
             if (!source) {
-                const source = await repl.sourceFor(ns!, meta.name.sym)
-                const head = extractHeadPosition(source)
-                setSource({source : source, head : head || ""})
+                try {
+                    const source = await repl.sourceFor(ns!, meta.name.sym)
+                    const head = extractHeadPosition(source)
+                    setSource({ source: source, head: head || "" })
+                } catch (err) { }
             }
         })()
     }, [repl, ns, meta, setShowSource])
     useEffect(() => {
         if (source && source.head) {
             switch (source.head) {
-                case "defmulti" : {
-                    (async () => {                        
-                        const dispatches = await repl.multiMethodDispatchKeys(ns!, meta.name.sym)
-                        setDispatches(dispatches)                        
+                case "defmulti": {
+                    (async () => {
+                        const dispatches = await repl.multiMethodDispatch(ns!, meta.name.sym)
+                        for (let i = 0; i < dispatches.length; i++) {
+                            const [dispatchOn, dispatchFnName] = dispatches[i]
+                            const dispatchNs = dispatchFnName.match(/^(?<ns>[^\$]+)/);
+                            if (dispatchNs && dispatchNs.groups) {
+                                dispatches[i] = [dispatchOn, dispatchNs.groups.ns.replaceAll("_", "-")]
+                            }
+                        }
+                        setDispatches(dispatches)
                     })()
                     break;
                 };
-                default : {                
+                default: {
                 }
             }
         }
@@ -70,7 +79,7 @@ const NamespaceIntern: React.FunctionComponent<NamespaceInternProps> = ({ repl, 
             </Name>
             {meta.protocol ? <p>{meta.protocol.tag}</p> : <p></p>}
             <p style={{ fontSize: '0.9em' }}>{meta.file}</p>
-            {meta.private ? <PrivateBar /> : <PublicBar />}            
+            {meta.private ? <PrivateBar /> : <PublicBar />}
             {meta.file ? <section>
                 {
                     showSource ?
@@ -79,7 +88,10 @@ const NamespaceIntern: React.FunctionComponent<NamespaceInternProps> = ({ repl, 
                                 <button onClick={(_) => setShowSource(false)}>Hide</button>
                                 <pre>{source?.head}</pre>
                                 <pre>{source?.source}</pre>
-                                {dispatches.map((s,i) => (<div key={i}><code>{s}</code></div>))}
+                                {dispatches.map(([k, v], i) => (
+                                    <div key={i}>
+                                        <span style={{fontFamily: "Roboto"}}><code>{k}</code> implemented in <code>{v}</code></span></div>
+                                ))}
                             </div>
                         )
                         :
@@ -99,6 +111,7 @@ const NamespaceIntern: React.FunctionComponent<NamespaceInternProps> = ({ repl, 
 const NamespaceInterns: React.FunctionComponent<Props> = ({ repl, ns }) => {
 
     const [interns, setInterns] = useState<Meta[]>([])
+    const [nsDoc, setNsDoc] = useState<string>()
     const [showPrivate, setShowPrivate] = useState(true)
 
     useEffect(() => {
@@ -108,13 +121,19 @@ const NamespaceInterns: React.FunctionComponent<Props> = ({ repl, ns }) => {
                 const interns = await repl.metaForNsInterns(nsSymbol);
                 interns.sort((a, b) => (a.line || 0) - (b.line || 0))
                 setInterns(interns)
-            })()
+            })();
+            (async () => {
+                const nsSymbol = "'" + ns
+                const nsMeta = await repl.namespaceMeta(nsSymbol);
+                setNsDoc(nsMeta ? nsMeta.doc : undefined)
+            })();
         }
     }, [ns])
 
     return (
         <div>
             <h3>{ns}</h3>
+            <pre>{nsDoc}</pre>
             <label>
                 <input
                     type="checkbox"

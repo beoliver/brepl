@@ -92,9 +92,22 @@ export class Repl {
         return data
     }
 
+    public async multiMethodDispatch (ns: string, name: string ) {
+        const expr = `(mapv (fn [[k v]] [(pr-str k) (.getName (class v))]) (clojure.core/methods ${ns}/${name}))`
+        const data = await this.repl.eval<[string,string][]>(expr)
+        return data
+    }
+
     public async inNs (ns: string) {
         const expr = `(in-ns ${ns})`
         const data = await this.repl.eval<any>(expr)
+        return data
+    }
+
+    public async namespaceMeta (ns: string) {
+        const expr = `(clojure.core/meta (clojure.lang.Namespace/find ${ns}))`
+        const data = await this.repl.eval<{doc : string} | null>(expr);
+        console.log(data);
         return data
     }
 
