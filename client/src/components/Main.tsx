@@ -41,7 +41,7 @@ const RightColumn = styled.div`
 interface Props { }
 
 export const Main: React.FunctionComponent<Props> = () => {
-    const [proxyAddr, setProxyAddr] = useState<string>("8888")
+    const [proxyAddr, setProxyAddr] = useState<string>(window.location.port)
     const [preplAddr, setPreplAddr] = useState<string>("8081")
     const [repl, setRepl] = useState<Repl | undefined>()
     const [ns, setNs] = useState<string>()
