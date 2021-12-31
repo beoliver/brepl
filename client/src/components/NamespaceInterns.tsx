@@ -43,6 +43,7 @@ const NamespaceIntern: React.FunctionComponent<NamespaceInternProps> = ({ repl, 
             <Name>
                 {meta.name.sym}
             </Name>
+            { meta.protocol ? <p>{meta.protocol.tag}</p> : <p></p>}
             {meta.private ? <PrivateBar /> : <PublicBar />}
             <section>
                 {showSource ? <div><button onClick={(_) => setShowSource(false)}>Hide</button><pre>{source}</pre></div> : <button onClick={(_) => handleFetchSource()}>Source</button>}

@@ -68,21 +68,21 @@ export class Repl {
         console.log(data)
         return data
     }
-    public async sourceFor(ns: string, name : string): Promise<string> {
-        const expr = `(clojure.repl/source-fn '${ns}/${name})`        
-        const data = await this.repl.eval<string>(expr)        
+    public async sourceFor(ns: string, name: string): Promise<string> {
+        const expr = `(clojure.repl/source-fn '${ns}/${name})`
+        const data = await this.repl.eval<string>(expr)
         return data
     }
 
     public async allSpecs() {
         const expr = `(keys (clojure.spec.alpha/registry))`
-        const data = await this.repl.eval<Array<string|Symbol>>(expr)        
+        const data = await this.repl.eval<Array<string | Symbol>>(expr)
         return data
     }
 
-    public async specExample(spec : string) {
+    public async specExample(spec: string) {
         const expr = `(pr-str (clojure.spec.gen.alpha/generate (clojure.spec.alpha/gen (clojure.spec.alpha/get-spec ${spec}))))`
-        const data = await this.repl.eval<string>(expr)        
+        const data = await this.repl.eval<string>(expr)
         return data
     }
 
@@ -99,6 +99,7 @@ export interface Meta {
     ns: any
     deprecated?: string;
     private?: boolean;
+    protocol?: { tag: string, val: string }
 }
 
 type NsTree = { [key: string]: NsTreeValue }
@@ -114,8 +115,8 @@ export const nsNameTree = (namespaces: string[]): NsTreeValue => {
         // and recurively "move" down into
         segments.forEach((segment: string, index: number) => {
             // if there is no key for a segment eg "bar"
-            const isLastSegmentinNamespace = index === segments.length - 1      
-            if (!tree[segment]) {                                
+            const isLastSegmentinNamespace = index === segments.length - 1
+            if (!tree[segment]) {
                 if (isLastSegmentinNamespace) {
                     // console.log(ns)
                     tree[segment] = { ns, children: {} }
