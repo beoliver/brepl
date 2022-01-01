@@ -22,22 +22,23 @@ export const ednParseOptions: ParseOptions = {
 }
 
 export interface ReplImpl {
-    connect(): Promise<void>;
-    eval<T>(expr: any): Promise<T>
+    connected: Promise<boolean>;  
+    eval<T>(expr: string): Promise<T>
 }
 
 export class Repl {
 
     private repl: ReplImpl
+    
     constructor(repl: ReplImpl) {
         this.repl = repl
     }
 
-    public async connect() {
-        await this.repl.connect()
+    public get connected() {
+        return this.repl.connected
     }
 
-    public async eval<T>(expr: any) {
+    public async eval<T>(expr: string) {
         return this.repl.eval<T>(expr)
     }
 

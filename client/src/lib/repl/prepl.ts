@@ -21,22 +21,26 @@ const websocketURL = (proxy: Addr, repl: Addr) =>
 
 
 export class Prepl implements ReplImpl {
-    private socket!: WebSocket
+    private socket: WebSocket
     private callId = 0;
     private callbacks: Map<number, any>;
-    private proxyAddr: Addr
-    private replAddr: Addr
     private parseOptions: ParseOptions
+    private awaitingConnection: ((value:boolean)=>void)[]
+
+    private isConnected = false;
 
     constructor(proxyAddr: Addr, replAddr: Addr, parseOptions: ParseOptions) {
         this.callbacks = new Map();
-        this.proxyAddr = proxyAddr
-        this.replAddr = replAddr
         this.parseOptions = parseOptions
-    }
+        this.awaitingConnection = []
 
-    public connect(): Promise<void> {
-        this.socket = new WebSocket(websocketURL(this.proxyAddr, this.replAddr))
+        this.socket = new WebSocket(websocketURL(proxyAddr, replAddr))
+
+        this.socket.onopen = (ev: Event) => {
+            this.isConnected = true            
+            this.awaitingConnection.forEach((f) => f(true))
+            this.awaitingConnection = []
+        }
 
         this.socket.onmessage = (ev: MessageEvent<string>) => {
             const edn = parseEDNString(ev.data, this.parseOptions) as PreplResult<any>
@@ -57,18 +61,18 @@ export class Prepl implements ReplImpl {
                 }
             }
         }
+    }
 
-        return new Promise((resolve, reject) => {
-            this.socket.onopen = (ev: Event) => {
-                resolve()
-            }
-            this.socket.onerror = (ev: Event) => {
-                reject(ev)
-            }
+    public get connected() {
+        if (this.isConnected) {
+            return Promise.resolve(true)
+        }
+        return new Promise((resolve : (value : boolean) => void, reject) => {
+            this.awaitingConnection.push(resolve)
         })
     }
 
-    public eval<T>(expr: any): Promise<T> {
+    public eval<T>(expr: string): Promise<T> {
         return new Promise((resolve, reject) => {
             const id = this.callId++
             this.callbacks.set(id, (data: unknown) => {

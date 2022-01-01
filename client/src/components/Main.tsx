@@ -1,5 +1,6 @@
 import React, { FormEvent, useCallback, useEffect, useState } from "react"
 import { Prepl } from "../lib/repl/prepl"
+import { Nrepl } from "../lib/repl/nrepl"
 import { Repl, ednParseOptions, ProxyAddr, ReplAddr } from "../lib/repl/repl"
 import NamespaceTree from "./NamespaceTree";
 import NamespacePublics from "./NamespaceInterns";
@@ -42,7 +43,8 @@ interface Props { }
 
 export const Main: React.FunctionComponent<Props> = () => {
     const [proxyAddr, setProxyAddr] = useState<string>(window.location.port)
-    const [preplAddr, setPreplAddr] = useState<string>("8081")
+    const [replAddr, setReplAddr] = useState<string>("8081")
+    const [replType, setReplType] = useState<string>("prepl")
     const [repl, setRepl] = useState<Repl | undefined>()
     const [ns, setNs] = useState<string>()
 
@@ -57,17 +59,25 @@ export const Main: React.FunctionComponent<Props> = () => {
 
     const connect = useCallback((event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
-        if (proxyAddr && preplAddr) {
+        if (proxyAddr && replAddr) {
+            let repl: Repl
+            switch (replType) {
+                case "prepl": {
+                    repl = new Repl(new Prepl({ port: proxyAddr }, { port: replAddr }, ednParseOptions))
+                    break
+                }
+                case "nrepl": {
+                    repl = new Repl(new Nrepl({ port: proxyAddr }, { port: replAddr }, ednParseOptions))
+                    break
+                }
+                default: throw Error("bad repl type")
+            }
             (async () => {
-                const repl = new Repl(new Prepl({ port: proxyAddr }, { port: preplAddr }, ednParseOptions))
-                console.log(repl)
-                return repl.connect().then((_) => {
-                    console.log(repl)
-                    setRepl(repl)
-                })
+                await repl.connected
+                setRepl(repl)
             })()
         }
-    }, [repl, proxyAddr, preplAddr])
+    }, [repl, proxyAddr, replAddr])
 
     if (repl !== undefined) {
         return (
@@ -95,13 +105,22 @@ export const Main: React.FunctionComponent<Props> = () => {
                             type="text"
                             value={proxyAddr}
                             onChange={(e) => { setProxyAddr(e.target.value) }} />
-                        <span>/prepl/localhost:</span>
+                        <span>/</span>
+                        <select
+                            id="repls"
+                            defaultValue={replType}
+                            onChange={(x) => { x.preventDefault(); setReplType(x.target.value) }}
+                        >
+                            <option value="prepl">pREPL</option>
+                            <option value="nrepl"> nREPL</option>
+                        </select>
+                        <span>/localhost:</span>
                         <input
                             size={5}
                             style={{ boxSizing: "border-box", fontFamily: "JetBrains Mono" }}
                             type="text"
-                            value={preplAddr}
-                            onChange={(e) => { setPreplAddr(e.target.value) }} />
+                            value={replAddr}
+                            onChange={(e) => { setReplAddr(e.target.value) }} />
                     </div>
                     <input style={{ margin: "1em", padding: "0.5em 0.5em", fontFamily: "JetBrains Mono" }} type="submit" value="Connect" />
                 </FlexForm>

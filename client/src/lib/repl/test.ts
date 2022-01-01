@@ -5,16 +5,16 @@ import type { Symbol } from "./clojure";
 
 export const test = async () => {
     const repl = new Repl(new Prepl({ port: "8888" }, { port: "7777" }, ednParseOptions))
-    await repl.connect();
+    await repl.connected;
     const results: any[] = [];
 
     let result = await repl.eval<number>("(+ 1 2 3)");
     results.push(result);
 
-    result = await repl.eval(42);
+    result = await repl.eval("42");
     results.push(result);
 
-    let boolResult = await repl.eval<boolean>(true);
+    let boolResult = await repl.eval<boolean>("true");
     results.push(boolResult);
 
     let nullResult = await repl.eval<null>('(println "hello")');
