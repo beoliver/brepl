@@ -15,7 +15,7 @@ const MainContainerStyle = styled.div`
 const LeftColumn = styled.div`
     font-family: 'Roboto';
     background-color: white;
-    min-width: 5em;    
+    // min-width: 5em;    
     padding: 1em 1em;
     width: 50%;
     resize: horizontal;
@@ -25,15 +25,15 @@ const LeftColumn = styled.div`
 const CenterColumn = styled.div`
     background-color: white;
     font-family: 'JetBrains Mono';
-    min-width: 5em;    
+    // min-width: 5em;    
     resize: horizontal;
     overflow-y: scroll;    
 `
 const RightColumn = styled.div`
     background-color: pink;
     font-family: 'JetBrains Mono';
-    min-width: 5em;
-    max-width: 40em;
+    /* min-width: 5em;
+    max-width: 40em; */
     overflow-x: auto;
     overflow-y: scroll;    
 `

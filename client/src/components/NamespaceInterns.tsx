@@ -9,7 +9,7 @@ const Container = styled.div<{ depricated?: string, private?: boolean }>`
     color: ${(props) => props.depricated ? "black" : (props.private ? "white" : "black")};
     padding: 1em 1em;
     overflow-x: scroll;
-    font-size: 0.9em;
+    font-size: 1em;
 `
 const Name = styled.h3`
     margin-bottom: 0em;    
@@ -99,10 +99,10 @@ const NamespaceIntern: React.FunctionComponent<NamespaceInternProps> = ({ repl, 
                 }
             </section> : <div></div>}
             <section>
-                <p><code>{meta.arglists}</code></p>
+                <pre>{meta.arglists}</pre>
             </section>
             <section>
-                <p>{meta.doc}</p>
+                <pre>{meta.doc}</pre>
             </section>
         </Container>
     )
