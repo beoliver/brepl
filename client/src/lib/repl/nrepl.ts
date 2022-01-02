@@ -8,46 +8,50 @@ const websocketURL = (proxy: Addr, repl: Addr) =>
     `ws://${proxy.hostname || "localhost"}:${proxy.port}/nrepl/${repl.hostname || "localhost"}:${repl.port}`
 
 export class Nrepl implements ReplImpl {
-    private socket!: WebSocket
+
+    private socket: WebSocket
+
     private callId = 0;
     private callbacks: Map<number, any>;
-    private proxyAddr: Addr
-    private replAddr: Addr
+
+
     private parseOptions: ParseOptions
     private sessionId?: string
-    private isConnected = false;
-    private blocking: ((value: boolean) => void)[]
+    private isConnected?: boolean;
+    private awaitingConnection: ((value: boolean) => void)[]
+
+    private setConnectionStatus(connected: boolean) {
+        this.isConnected = connected
+        this.awaitingConnection.forEach((f) => f(connected))
+        this.awaitingConnection = []
+    }
 
     constructor(proxyAddr: Addr, replAddr: Addr, parseOptions: ParseOptions) {
         this.callbacks = new Map();
-        this.proxyAddr = proxyAddr
-        this.replAddr = replAddr
         this.parseOptions = parseOptions
-        this.blocking = []
+        this.awaitingConnection = []
 
-        console.log("connect");
-        this.socket = new WebSocket(websocketURL(this.proxyAddr, this.replAddr))
+        this.socket = new WebSocket(websocketURL(proxyAddr, replAddr))
 
         this.socket.onopen = (ev: Event) => {
-            console.log("socket opened")
-            this.socket.send("d2:op5:clonee")
+            this.socket.send(encode({ op: "clone" }))
+        }
+
+        this.socket.onclose = (ev: Event) => {
+            this.setConnectionStatus(false)
         }
 
         this.socket.onmessage = (ev: MessageEvent<string>) => {
-            console.log("MESSAGE", ev.data)
+            console.log(ev.data)
             const data = decode(ev.data) as BencodeDict
-            console.log(JSON.stringify(data, null, 2))
 
             if (!this.sessionId) {
                 this.sessionId = data["new-session"] as string
-                this.isConnected = true
-                this.blocking.forEach((f) => f(true))
-                this.blocking = []
+                this.setConnectionStatus(true)
             } else {
-                console.log(JSON.stringify(data, null, 2))
                 const id = data["id"] as number
                 const expr = data["value"]
-                if (expr) {
+                if (id !== undefined && expr !== undefined) {
                     const callback = this.callbacks.get(id)
                     // assume callback is there _shrug_
                     this.callbacks.delete(id)
@@ -59,11 +63,11 @@ export class Nrepl implements ReplImpl {
     }
 
     public get connected() {
-        if (this.isConnected) {
-            return Promise.resolve(true)
+        if (this.isConnected !== undefined) {
+            return Promise.resolve(this.isConnected)
         }
         return new Promise((resolve: (value: boolean) => void, reject) => {
-            this.blocking.push(resolve)
+            this.awaitingConnection.push(resolve)
         })
     }
 

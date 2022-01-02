@@ -46,13 +46,15 @@ const parseInteger = (bencode: string): BencodeParseResult<number> => {
     }
 }
 
-const parseString = (bencode: string): BencodeParseResult<string> => {
-    const colonIndex = bencode.indexOf(":")
+const parseString = (bencode: string): BencodeParseResult<string> => {    
+    const colonIndex = bencode.indexOf(":")    
     const strLen = Number(bencode.slice(0, colonIndex))
     const strStart = colonIndex + 1
     const strEnd = strStart + strLen
+    const val = bencode.slice(strStart, strEnd)
+    console.log(strLen, val)
     return {
-        val: bencode.slice(strStart, strEnd),
+        val,
         rem: bencode.slice(strEnd)
     }
 }
@@ -82,14 +84,16 @@ const parseDict = (bencode: string): BencodeParseResult<BencodeDict> => {
     let x = 0
     while (true) {
         x++
-        if (x > 10000) {
-            throw new Error("could not parse bencode dict")
+        if (x > 1000) {            
+            throw new Error(`could not parse bencode dict - ${bencode}`)
         }
         if (bencode.charAt(0) === "e") {
             return { val: result, rem: bencode.slice(1) }
         } else {
             const parsedKey = parse(bencode)
+            console.log(parsedKey.val)
             const parsedVal = parse(parsedKey.rem)
+            console.log(parsedVal.val)
             result[parsedKey.val as string] = parsedVal.val
             bencode = parsedVal.rem
         }

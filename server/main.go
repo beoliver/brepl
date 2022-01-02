@@ -46,7 +46,7 @@ func readFromPreplSock(ws *websocket.Conn, sock net.Conn) {
 func readFromNreplSock(ws *websocket.Conn, sock net.Conn) {
 	wa := ws.RemoteAddr().String()
 	ra := sock.RemoteAddr().String()
-	var bytes = make([]byte, 64*1024)
+	var bytes = make([]byte, 1000000*5)
 	for {
 		bytesRead, err := sock.Read(bytes)
 		if err != nil {

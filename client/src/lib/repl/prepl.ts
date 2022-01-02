@@ -21,15 +21,24 @@ const websocketURL = (proxy: Addr, repl: Addr) =>
 
 
 export class Prepl implements ReplImpl {
+
     private socket: WebSocket
+
     private callId = 0;
     private callbacks: Map<number, any>;
     private parseOptions: ParseOptions
-    private awaitingConnection: ((value:boolean)=>void)[]
 
-    private isConnected = false;
+    private isConnected?: boolean;
+    private awaitingConnection: ((value: boolean) => void)[]
+
+    private setConnectionStatus(connected: boolean) {
+        this.isConnected = connected
+        this.awaitingConnection.forEach((f) => f(connected))
+        this.awaitingConnection = []
+    }
 
     constructor(proxyAddr: Addr, replAddr: Addr, parseOptions: ParseOptions) {
+        
         this.callbacks = new Map();
         this.parseOptions = parseOptions
         this.awaitingConnection = []
@@ -37,9 +46,11 @@ export class Prepl implements ReplImpl {
         this.socket = new WebSocket(websocketURL(proxyAddr, replAddr))
 
         this.socket.onopen = (ev: Event) => {
-            this.isConnected = true            
-            this.awaitingConnection.forEach((f) => f(true))
-            this.awaitingConnection = []
+            this.setConnectionStatus(true)
+        }
+
+        this.socket.onclose = (ev: Event) => {
+            this.setConnectionStatus(false)
         }
 
         this.socket.onmessage = (ev: MessageEvent<string>) => {
@@ -64,10 +75,10 @@ export class Prepl implements ReplImpl {
     }
 
     public get connected() {
-        if (this.isConnected) {
-            return Promise.resolve(true)
+        if (this.isConnected !== undefined) {
+            return Promise.resolve(this.isConnected)
         }
-        return new Promise((resolve : (value : boolean) => void, reject) => {
+        return new Promise((resolve: (value: boolean) => void, reject) => {
             this.awaitingConnection.push(resolve)
         })
     }
