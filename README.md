@@ -4,7 +4,7 @@
 
 ---
 
-bREPL is a single binary that provides support for:
+bREPL is a single binary that provides:
 
 1. A Web Socket to TCP proxy/bridge a la [websockify](https://github.com/novnc/websockify).
 2. A browser based front end for navigating data.
