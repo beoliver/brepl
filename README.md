@@ -1,14 +1,15 @@
 # _b_**REPL**
 
-### Explore **any*** clojure application via your browser.
-
-*If your application can expose an [io-prepl](https://clojuredocs.org/clojure.core.server/io-prepl) server then you're good to go.
+### Explore **any** clojure application via your browser.
 
 ---
 
-The  _b_**REPL** is a single binary that provides support for:
+bREPL is a single binary that provides support for:
+
 1. A Web Socket to TCP proxy/bridge a la [websockify](https://github.com/novnc/websockify).
 2. A browser based front end for navigating data.
+
+If your application can expose an [io-prepl](https://clojuredocs.org/clojure.core.server/io-prepl) server then you're good to go.
 
 ---
 
