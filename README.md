@@ -1,99 +1,76 @@
 # _b_**REPL**
 
-### bREPL lets your browser connect to **any** clojure application that is running either a [prepl](https://clojuredocs.org/clojure.core.server/io-prepl) or [nREPL](https://nrepl.org/nrepl/index.html) server. No extra Deps required!
+### Explore **any*** clojure application via your browser.
+
+*If your application can expose an [io-prepl](https://clojuredocs.org/clojure.core.server/io-prepl) server then you're good to go.
 
 ---
 
-## How?
-
-Web browsers don't allow raw sockets. However, we can open up a websocket and connect to a second "proxy" [server](./server).
-
----
-
-## Why?
-
-Browsers are fantastic for experimenting with UX design. Which aspects of the clojure development process could benefit from the ability to explore visually?
+The  _b_**REPL** is a single binary that provides support for:
+1. A Web Socket to TCP proxy/bridge a la [websockify](https://github.com/novnc/websockify).
+2. A browser based front end for navigating data.
 
 ---
 
-## PREPL
+# Use
 
-By including the following jvm options it is possible to connect to your running repl via a tcp connection.
+In the following example it is assumed that the prepl server is open on port `7777` and the bREPL server is open on port `8888`
+
+## Build the binary
+
+```bash
+$ make build
 ```
--Dclojure.server.repl={:port 8888 :accept clojure.core.server/io-prepl}
+
+## Starting the bREPL server
+
+```
+$ ./server/bin/brepl -p 8888
+```
+
+Direct your browser to  [http://localhost:8888](http://localhost:8888).
+
+
+## Starting the prepl
+
+If you have an existing project that you're developing, chances are you're using nrepl. While bREPL can use nREPL - it is easier (for now) to simply start an `io-prepl` server from you're repl.
+
+```clojure
+user> (def server 
+        (clojure.core.server/start-server
+         {:name "sockserver" 
+          :port 7777
+          :accept 'clojure.core.server/io-prepl}))
+#'user/server
+user> server
+#object[java.net.ServerSocket 0x6377f56e "ServerSocket[addr=localhost/127.0.0.1,localport=7777]"]
+user> (.close server)
+nil
+```
+
+By including the following jvm options it is possible to start a server directly - for example
+
+```clojure
+-Dclojure.server.repl={:port 7777 :accept clojure.core.server/io-prepl}
 ```
 
 For example, to just craete an "empty" repl, we could run the following clojure cli command
 
-```
-$ clj -J-Dclojure.server.repl="{:port 8888 :accept clojure.core.server/io-prepl}"
-Clojure 1.10.3
-user=> (def greeting "Hello")
-#'user/greeting
-```
-In a separate tab, we can use the `nc` command to interact with the repl
-```
-$ nc localhost 8888
-greeting
-{:tag :ret, :val "\"Hello\"", :ns "user", :ms 0, :form "greeting"}
-```
-
-Web browsers don't allow raw sockets. However, we can open up a websocket and connect to a second server that can act as a "proxy".
-
-A small [proxy server](./server) (written in GO) serves this role as well as serving the static html/js/css for the frontent.
-
-```
-[client]<----websocket--->[PROXY]<---TCP--->[CLOJURE/JVM]
-                                            [   nREPL   ]
-                                                  |
-[EMACS/VSCODE]<-----------------------------------|
-```
-The nice thing about this is that you can open a browser as well as having
-a project open in say, emacs.
-
-## opening a pREPL server using nREPL
-
-```clojure
-$ lein repl
-nREPL server started on port 64801 on host 127.0.0.1 - nrepl://127.0.0.1:64801
-...
-user => (def sockserver (clojure.core.server/start-server {:port 8081 :accept 'clojure.core.server/io-prepl :name "sockserver"}))
-```
-
-## server
-
-Start the server on your favourite port.
-
 ```bash
-$ cd server
-$ go run main.go --port 8080 --root ./public
+$ clj -J-Dclojure.server.repl="{:port 7777 :accept clojure.core.server/io-prepl}"
+Clojure 1.10.3
+user=> 
 ```
-
-You can now go to [http://localhost:8080](http://localhost:8080)!
-If you are still running the `prepl` on port `8888` from the earlier example, you will already be able to connect and have a look around.
-
-
-## client
-
-The client is written in clojurescript. The client should be built and copied into the `server/public` directory.
-If you are hacking on the client, you want to make sure that you start server with `-ws-any-origin` flag as during development
-you will be on a different port eg `9500`.
 
 ## Lein
+
 For a quick test you can add the following `jvm-opts` to your `:user` profile located at `~/.lein/profiles.clj`. You can can use whatever value for `:port` you want.
 
 ```clojure
-{:user {:jvm-opts ["-Dclojure.server.repl={:port 8888 :accept clojure.core.server/io-prepl}"]}}
+{:user {:jvm-opts ["-Dclojure.server.repl={:port 7777 :accept clojure.core.server/io-prepl}"]}}
 ```
 
-_Note that you will have issues if you try to open more than one project as there will be a bound socket (8888) already in use._
-
-This will start a `prepl` server when you run `lein repl` from the command line - or use `cider-jack-in` within emacs.
-
-If you go back to [http://localhost:8080](http://localhost:8080) you will now be able to connect using ports `8080` and `8888`
-
-To test you can use the `nc` command
-
+_Note that you will have issues if you try to open more than one project as there will be a bound socket (7777) already in use._
 
 
 
