@@ -1,14 +1,15 @@
 import React, { useCallback, useEffect, useState } from "react"
-import { Repl, Meta } from "../lib/repl/repl"
+import { Repl, Meta, NamespaceMeta } from "../lib/repl/repl"
 import styled from "styled-components";
+import { NamespaceQualified } from "../lib/repl/utils";
 
-interface Props { repl: Repl, ns?: string }
+interface Props { repl: Repl, ns?: string, symbol? : NamespaceQualified }
 
 const Container = styled.div<{ depricated?: string, private?: boolean }>`
     background-color: ${(props) => props.depricated ? "red" : (props.private ? "#1A2421" : "#fbfbfb")};
     color: ${(props) => props.depricated ? "black" : (props.private ? "white" : "black")};
     padding: 1em 1em;
-    overflow-x: scroll;
+    /* overflow-x: scroll; */
     font-size: 1em;
 `
 const Name = styled.h3`
@@ -78,7 +79,10 @@ const NamespaceIntern: React.FunctionComponent<NamespaceInternProps> = ({ repl, 
                 {meta.name.sym}
             </Name>
             {meta.protocol ? <p>{meta.protocol.tag}</p> : <p></p>}
-            <p style={{ fontSize: '0.9em' }}>{meta.file}</p>
+            <div style={{fontSize: "0.9em", display: "flex", alignItems: "center", justifyContent: "space-between"}}>
+                <div><p>{meta.file}</p></div>
+                <div>{meta.added ? <p>added: {meta.added}</p> : <></>}</div>
+            </div>
             {meta.private ? <PrivateBar /> : <PublicBar />}
             {meta.file ? <section>
                 {
@@ -90,7 +94,7 @@ const NamespaceIntern: React.FunctionComponent<NamespaceInternProps> = ({ repl, 
                                 <pre>{source?.source}</pre>
                                 {dispatches.map(([k, v], i) => (
                                     <div key={i}>
-                                        <span style={{fontFamily: "Roboto"}}><code>{k}</code> implemented in <code>{v}</code></span></div>
+                                        <span style={{ fontFamily: "Roboto" }}><code>{k}</code> implemented in <code>{v}</code></span></div>
                                 ))}
                             </div>
                         )
@@ -98,24 +102,25 @@ const NamespaceIntern: React.FunctionComponent<NamespaceInternProps> = ({ repl, 
                         <button onClick={(_) => handleFetchSource()}>Source</button>
                 }
             </section> : <div></div>}
-            <section>
+            <section style={{overflowX : "scroll"}}>
                 <pre>{meta.arglists}</pre>
             </section>
-            <section>
+            <section style={{overflowX : "scroll"}}>
                 <pre>{meta.doc}</pre>
             </section>
         </Container>
     )
 }
 
-const NamespaceInterns: React.FunctionComponent<Props> = ({ repl, ns }) => {
+const NamespaceInterns: React.FunctionComponent<Props> = ({ repl, ns, symbol }) => {
 
     const [interns, setInterns] = useState<Meta[]>([])
-    const [nsDoc, setNsDoc] = useState<string>()
+    const [nsMeta, setNsMeta] = useState<NamespaceMeta>()
     const [showPrivate, setShowPrivate] = useState(true)
+    const [reload, setReload] = useState(false)
 
     useEffect(() => {
-        if (ns) {
+        if (reload) {
             (async () => {
                 const nsSymbol = "'" + ns
                 const interns = await repl.metaForNsInterns(nsSymbol);
@@ -125,15 +130,53 @@ const NamespaceInterns: React.FunctionComponent<Props> = ({ repl, ns }) => {
             (async () => {
                 const nsSymbol = "'" + ns
                 const nsMeta = await repl.namespaceMeta(nsSymbol);
-                setNsDoc(nsMeta ? nsMeta.doc : undefined)
+                setNsMeta(nsMeta ? nsMeta : {})
             })();
+            setReload(false)
+            return
         }
-    }, [ns])
+
+        if (symbol) {            
+            (async () => {
+                const nsSymbol = "'" + symbol.ns
+                const interns = await repl.metaForNsInterns(nsSymbol);
+                interns.sort((a, b) => (a.line || 0) - (b.line || 0))
+                setInterns(interns.filter((x) => x.name.sym === symbol.symbol))
+            })();
+            (async () => {
+                const nsSymbol = "'" + ns
+                const nsMeta = await repl.namespaceMeta(nsSymbol);
+                setNsMeta(nsMeta ? nsMeta : {})
+            })();
+            return
+        }
+
+        if (ns) {            
+            (async () => {
+                const nsSymbol = "'" + ns
+                const interns = await repl.metaForNsInterns(nsSymbol);
+                interns.sort((a, b) => (a.line || 0) - (b.line || 0))
+                setInterns(interns)
+            })();
+            (async () => {
+                const nsSymbol = "'" + ns
+                const nsMeta = await repl.namespaceMeta(nsSymbol);
+                setNsMeta(nsMeta ? nsMeta : {})
+            })();
+            return
+        }
+        
+    }, [ns, reload, symbol])
 
     return (
         <div>
             <h3>{ns}</h3>
-            <pre>{nsDoc}</pre>
+            <pre>{nsMeta?.doc}</pre>
+            <button onClick={(_) => {setReload(true)}}>Reload</button>
+            <hr />
+            {nsMeta?.added ? <pre>added:{nsMeta?.added}</pre> : <></>}
+            {nsMeta?.author ? <pre>author:{nsMeta?.author}</pre> : <></>}
+            <hr />
             <label>
                 <input
                     type="checkbox"

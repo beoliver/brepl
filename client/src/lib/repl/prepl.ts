@@ -1,6 +1,6 @@
 import { parseEDNString } from "edn-data"
 import type { ParseOptions } from "edn-data/dist/parse"
-import type { Addr, ReplImpl } from "./repl";
+import type { Addr, ReplImpl } from "./types";
 
 interface PreplResult<T> {
     tag: "ret" | "out",
@@ -19,75 +19,98 @@ interface Execution {
 const websocketURL = (proxy: Addr, repl: Addr) =>
     `ws://${proxy.hostname || "localhost"}:${proxy.port}/prepl/${repl.hostname || "localhost"}:${repl.port}`
 
-
 export class Prepl implements ReplImpl {
 
-    private socket: WebSocket
+    private url: string
 
-    private callId = 0;
-    private callbacks: Map<number, any>;
+    private socket!: WebSocket
     private parseOptions: ParseOptions
 
-    private isConnected?: boolean;
-    private awaitingConnection: ((value: boolean) => void)[]
-
-    private setConnectionStatus(connected: boolean) {
-        this.isConnected = connected
-        this.awaitingConnection.forEach((f) => f(connected))
-        this.awaitingConnection = []
-    }
+    private callId = 0;
+    private callbacks: Map<number, { callback: (data: any, error: any) => any, parseOptions?: ParseOptions }>;
 
     constructor(proxyAddr: Addr, replAddr: Addr, parseOptions: ParseOptions) {
-        
         this.callbacks = new Map();
         this.parseOptions = parseOptions
-        this.awaitingConnection = []
+        this.url = websocketURL(proxyAddr, replAddr)
+    }
 
-        this.socket = new WebSocket(websocketURL(proxyAddr, replAddr))
+    public async connect(): Promise<boolean> {
 
-        this.socket.onopen = (ev: Event) => {
-            this.setConnectionStatus(true)
-        }
-
-        this.socket.onclose = (ev: Event) => {
-            this.setConnectionStatus(false)
-        }
+        this.socket = new WebSocket(this.url)
 
         this.socket.onmessage = (ev: MessageEvent<string>) => {
             const edn = parseEDNString(ev.data, this.parseOptions) as PreplResult<any>
-            if (edn.tag === "out") {
-                console.log("IO:", edn.val)
-            }
-            if (edn.tag === "ret") {
-                if (edn.exception) {
-                    console.warn("EXCEPTION")
-                    console.warn(edn)
-                } else {
-                    const { id, expr } = parseEDNString(edn.val, this.parseOptions) as Execution
-                    const callback = this.callbacks.get(id)
-                    // assume callback is there _shrug_
-                    this.callbacks.delete(id)
-                    // remove the callback to avoid a memory leak
-                    callback(expr)
+            console.log(edn)
+            switch (edn.tag) {
+                case "out": {
+                    console.log("IO:", edn.val)
+                    break
+                }
+                case "ret": {
+                    if (edn.exception) {
+                        console.warn("EXCEPTION")
+                        console.warn(edn)
+                    } else {
+                        // parse the form first to extract the id
+                        let id: number
+                        try {
+                            const val = parseEDNString(edn.val, { mapAs: "object", keywordAs: "string" }) as { id: number }
+                            id = val.id;
+                        } catch (error) {
+                            console.log("error parsing val for id")
+                            throw new Error("noooooo!")
+                        }
+                        const callbackAndParseOptions = this.callbacks.get(id);
+                        if (callbackAndParseOptions === undefined) {
+                            throw new Error("whoops - no callback")
+                        }
+                        const { callback, parseOptions } = callbackAndParseOptions
+                        // remove the callback to avoid a memory leak      
+                        this.callbacks.delete(id)
+                        try {                            
+                            const { expr } = parseEDNString(edn.val, parseOptions || this.parseOptions) as { expr: any }
+                            console.log(expr)
+                            callback(expr, null)
+                        } catch (err) {
+                            callback(edn.val, err)
+                        }
+                    }
+                    break
+                }
+                default: {
+
                 }
             }
         }
-    }
 
-    public get connected() {
-        if (this.isConnected !== undefined) {
-            return Promise.resolve(this.isConnected)
-        }
-        return new Promise((resolve: (value: boolean) => void, reject) => {
-            this.awaitingConnection.push(resolve)
+        return new Promise((resolve, reject) => {
+            this.socket.onopen = (ev: Event) => {
+                resolve(true)
+            }
+            this.socket.onclose = (ev: Event) => {
+                console.log(ev)
+                resolve(false)
+            }
+            this.socket.onerror = (ev: Event) => {
+                window.alert(JSON.stringify(ev))
+                reject(ev)
+            }
         })
+
     }
 
-    public eval<T>(expr: string): Promise<T> {
+    public eval<T>(expr: string, parseOptions?: ParseOptions): Promise<T> {
         return new Promise((resolve, reject) => {
             const id = this.callId++
-            this.callbacks.set(id, (data: unknown) => {
-                resolve(data as T)
+            this.callbacks.set(id, {
+                callback: (data: unknown, err: unknown) => {
+                    if (err) {
+                        reject(err)
+                    }
+                    resolve(data as T)
+                },
+                parseOptions
             })
             this.socket.send(`{:id ${id} :expr ${expr}}`)
         })

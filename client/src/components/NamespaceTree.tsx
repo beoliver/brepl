@@ -2,20 +2,25 @@ import React, { ChangeEvent, useEffect, useState } from "react"
 import styled from "styled-components"
 import { Repl, NsTreeValue, nsNameTree } from "../lib/repl/repl"
 
-interface Props { repl: Repl, setNs: (ns: string) => void }
+interface Props { label?: string, repl: Repl, setNs: (ns: string) => void }
 
-const Container = styled.div`
-    background-color: #fafafa;
+const Wrapper = styled.div`    
+    height: 100%;
+    width: 100%;   
 `
 
-const Controls = styled.div`
-    margin-bottom: 1em;
+const Controls = styled.div`    
+`
+const Content = styled.div`
+    background-color: #fafafa;    
+    height: calc(100vh - 5em);
+    overflow-x: scroll;
+    overflow-y: scroll;
 `
 
 const RegexInputField = styled.input`
-    width: 100%; 
-    box-sizing: border-box;
-    margin-bottom: 0.5em;
+    width: 100%;    
+    box-sizing: border-box;    
 `
 
 const ReloadNamespaceListButton = styled.button`
@@ -46,7 +51,7 @@ const TreeLeaf = styled.div<{ level: number }>`
 
 const htmlTree = (tree: NsTreeValue, level: number, setNs: (ns: string) => void): JSX.Element => {
     return (
-        <div>
+        <>
             {tree.ns ? <TreeLeaf level={level} onClick={() => tree.ns ? setNs(tree.ns.ns) : null}>
                 <span title={tree.ns.ns}><code>{tree.ns.segment}</code></span></TreeLeaf> : <div></div>}
             {Object.entries(tree.children).map(([k, v]) => {
@@ -59,13 +64,13 @@ const htmlTree = (tree: NsTreeValue, level: number, setNs: (ns: string) => void)
                 } else {
                     return (
                         <TreeDetails key={k} level={level}>
-                            <summary style={{color: 'blue', outline: 'none'}}>{k}</summary>
+                            <summary style={{ color: 'blue', outline: 'none' }}>{k}</summary>
                             {htmlTree(v, level + 1, setNs)}
                         </TreeDetails>
                     )
                 }
             })}
-        </div>
+        </>
     )
 }
 
@@ -90,13 +95,8 @@ const NamespaceTree: React.FunctionComponent<Props> = ({ repl, setNs }) => {
     }, [repl])
 
     return (
-        <Container>
+        <Wrapper>
             <Controls>
-                <RegexInputField
-                    placeholder="namespace regex"
-                    type="text"
-                    value={filterRegex.display}
-                    onChange={handleChange} />
                 <ReloadNamespaceListButton
                     onClick={async (e: any) => {
                         repl.allLoadedNamespaceNames().then((namespaces) => {
@@ -106,9 +106,16 @@ const NamespaceTree: React.FunctionComponent<Props> = ({ repl, setNs }) => {
                     }}>
                     Refresh Namespace List
                 </ReloadNamespaceListButton>
+                <RegexInputField
+                    placeholder="namespace regex"
+                    type="text"
+                    value={filterRegex.display}
+                    onChange={handleChange} />
             </Controls>
-            {htmlTree(nsNameTree(namespaces.filter(ns => ns.match(filterRegex.regex))), 0, setNs)}
-        </Container>
+            <Content>
+                {htmlTree(nsNameTree(namespaces.filter(ns => ns.match(filterRegex.regex))), 0, setNs)}
+            </Content>
+        </Wrapper>
     )
 }
 

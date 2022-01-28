@@ -5,3 +5,4 @@ export interface Symbol {
 export interface List<T> {
     list : T[]
 }
+

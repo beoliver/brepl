@@ -1,17 +1,6 @@
 import { ParseOptions } from "edn-data/dist/parse"
 import type { Symbol } from "./clojure"
-
-export interface Addr {
-    hostname?: string
-    port: string
-}
-
-export type ProxyAddr = Addr;
-
-export interface ReplAddr extends Addr {
-    type: string
-}
-
+import type { ReplImpl } from "./types"
 
 export const ednParseOptions: ParseOptions = {
     mapAs: "object",
@@ -21,25 +10,20 @@ export const ednParseOptions: ParseOptions = {
     charAs: "string",
 }
 
-export interface ReplImpl {
-    connected: Promise<boolean>;  
-    eval<T>(expr: string): Promise<T>
-}
-
 export class Repl {
 
     private repl: ReplImpl
-    
+
     constructor(repl: ReplImpl) {
         this.repl = repl
     }
 
-    public get connected() {
-        return this.repl.connected
+    public connect() {
+        return this.repl.connect()
     }
 
-    public async eval<T>(expr: string) {
-        return this.repl.eval<T>(expr)
+    public async eval<T>(expr: string, parseOptions?: ParseOptions) {
+        return this.repl.eval<T>(expr, parseOptions)
     }
 
     public async currentNamespace(): Promise<string> {
@@ -49,6 +33,10 @@ export class Repl {
 
     public async allLoadedNamespaceNames(): Promise<string[]> {
         return this.repl.eval<Array<string>>(`(mapv (comp name ns-name) (all-ns))`)
+    }
+
+    public async allSymbols(): Promise<string[]> {
+        return this.repl.eval<Array<string>>(`(map symbol (mapcat (comp vals ns-interns) (all-ns)))`)
     }
 
     public async nsMapKeys(ns: string): Promise<string[]> {
@@ -87,31 +75,42 @@ export class Repl {
         return data
     }
 
-    public async multiMethodDispatchKeys (ns: string, name: string ) {
+    public async multiMethodDispatchKeys(ns: string, name: string) {
         const expr = `(mapv pr-str (clojure.core/keys (clojure.core/methods ${ns}/${name})))`
         const data = await this.repl.eval<string[]>(expr)
         return data
     }
 
-    public async multiMethodDispatch (ns: string, name: string ) {
+    public async multiMethodDispatch(ns: string, name: string) {
         const expr = `(mapv (fn [[k v]] [(pr-str k) (.getName (class v))]) (clojure.core/methods ${ns}/${name}))`
-        const data = await this.repl.eval<[string,string][]>(expr)
+        const data = await this.repl.eval<[string, string][]>(expr)
         return data
     }
 
-    public async inNs (ns: string) {
+    public async inNs(ns: string) {
         const expr = `(in-ns ${ns})`
         const data = await this.repl.eval<any>(expr)
         return data
     }
 
-    public async namespaceMeta (ns: string) {
+    public async namespaceMeta(ns: string) {
         const expr = `(clojure.core/meta (clojure.lang.Namespace/find ${ns}))`
-        const data = await this.repl.eval<{doc : string} | null>(expr);
-        console.log(data);
+        const data = await this.repl.eval<NamespaceMeta | null>(expr);
         return data
     }
 
+    public async metaForSymbol(ns: string, symbol : string) {
+        const expr = `(clojure.core/update (clojure.core/meta #'${ns}/${symbol}) :arglists str)`
+        const data = await this.repl.eval<Meta | null>(expr);
+        return data
+    }
+
+}
+
+export interface NamespaceMeta {
+    doc?: string;
+    author?: string;
+    added?: string;
 }
 
 export interface Meta {
@@ -129,7 +128,7 @@ export interface Meta {
 }
 
 type NsTree = { [key: string]: NsTreeValue }
-export type NsTreeValue = { ns?: { ns : string, segment : string }, children: NsTree }
+export type NsTreeValue = { ns?: { ns: string, segment: string }, children: NsTree }
 
 export const nsNameTree = (namespaces: string[]): NsTreeValue => {
     // TODO - this is too janky!
@@ -145,7 +144,7 @@ export const nsNameTree = (namespaces: string[]): NsTreeValue => {
             if (!tree[segment]) {
                 if (isLastSegmentinNamespace) {
                     // console.log(ns)
-                    tree[segment] = { ns : { ns , segment }, children: {} }
+                    tree[segment] = { ns: { ns, segment }, children: {} }
                 } else {
                     tree[segment] = { children: {} }
                 }

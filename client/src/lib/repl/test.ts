@@ -5,7 +5,7 @@ import type { Symbol } from "./clojure";
 
 export const test = async () => {
     const repl = new Repl(new Prepl({ port: "8888" }, { port: "7777" }, ednParseOptions))
-    await repl.connected;
+    await repl.connect();
     const results: any[] = [];
 
     let result = await repl.eval<number>("(+ 1 2 3)");
