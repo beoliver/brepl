@@ -13,20 +13,33 @@ If your application can expose an [io-prepl](https://clojuredocs.org/clojure.cor
 
 ---
 
-# Use
+# Building
 
-In the following example it is assumed that the prepl server is open on port `7777` and the bREPL server is open on port `8888`
-
-## Build the binary
+Make sure you have `golang` and `npm` installed.
 
 ```bash
-$ make build
+$ git clone git@github.com:beoliver/brepl.git
+$ cd brepl
+$ make
 ```
+
+You can just copy the crerated binary and put it wherever you want.
+
+```bash
+$ mv server/bin/brepl ~/bin/brepl
+```
+
+# Use
+
+In the following example it is assumed that: 
+
+2. The prepl server is open on port `7777`
+3. the bREPL server is open on port `8888`
 
 ## Starting the bREPL server
 
 ```
-$ ./server/bin/brepl -p 8888
+$ brepl -p 8888
 ```
 
 Direct your browser to  [http://localhost:8888](http://localhost:8888).
